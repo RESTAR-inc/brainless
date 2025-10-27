@@ -1,0 +1,16 @@
+services:
+  db:
+    image: pgvector/pgvector:pg18-trixie
+    container_name: brainless_dev_db
+    ports:
+      - ${DB_PORT}:5432
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_PORT: ${DB_PORT}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:
