@@ -69,7 +69,9 @@ defmodule Brainless.MixProject do
       {:nimble_csv, "~> 1.1"},
       {:pgvector, "~> 0.3.0"},
       {:bumblebee, "~> 0.6.0"},
-      {:exla, "~> 0.10"}
+      {:exla, "~> 0.10"},
+      {:ex_llm, "~> 0.8.1"},
+      {:emlx, github: "elixir-nx/emlx", branch: "main", optional: true}
     ]
   end
 

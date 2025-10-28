@@ -1,4 +1,8 @@
 defmodule Brainless.Rag.Embedding do
+  @moduledoc """
+  See https://developers.googleblog.com/en/gemini-embedding-available-gemini-api/
+  """
+
   @model_repo {:hf, "intfloat/e5-large-v2"}
 
   def serving do

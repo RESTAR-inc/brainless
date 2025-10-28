@@ -3,7 +3,7 @@ defmodule Brainless.Repo.Migrations.BooksAddEmbedding do
 
   def change do
     alter table(:books) do
-      add :embedding, :vector, size: 1024
+      add :embedding, :vector, size: 768
     end
 
     create index("books", ["embedding vector_l2_ops"], using: :hnsw)
