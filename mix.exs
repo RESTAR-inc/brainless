@@ -66,7 +66,10 @@ defmodule Brainless.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
-      {:nimble_csv, "~> 1.1"}
+      {:nimble_csv, "~> 1.1"},
+      {:pgvector, "~> 0.3.0"},
+      {:bumblebee, "~> 0.6.0"},
+      {:exla, ">= 0.0.0"}
     ]
   end
 

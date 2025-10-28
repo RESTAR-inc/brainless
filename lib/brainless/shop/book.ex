@@ -11,6 +11,8 @@ defmodule Brainless.Shop.Book do
     field :author, :string
     field :published_at, :date
 
+    field :embedding, Pgvector.Ecto.Vector
+
     timestamps(type: :utc_datetime)
   end
 
@@ -18,6 +20,14 @@ defmodule Brainless.Shop.Book do
   def changeset(book, attrs) do
     book
     |> cast(attrs, [:name, :description, :price, :is_available, :isbn, :author, :published_at])
-    |> validate_required([:name, :description, :price, :is_available, :isbn, :author, :published_at])
+    |> validate_required([
+      :name,
+      :description,
+      :price,
+      :is_available,
+      :isbn,
+      :author,
+      :published_at
+    ])
   end
 end

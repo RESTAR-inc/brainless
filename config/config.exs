@@ -31,6 +31,8 @@ config :brainless, BrainlessWeb.Endpoint,
 # at the `config/runtime.exs`.
 config :brainless, Brainless.Mailer, adapter: Swoosh.Adapters.Local
 
+config :brainless, Brainless.Repo, types: Brainless.PostgrexTypes
+
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.25.4",
@@ -59,6 +61,8 @@ config :logger, :default_formatter,
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
+
+config :nx, default_backend: EXLA.Backend
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

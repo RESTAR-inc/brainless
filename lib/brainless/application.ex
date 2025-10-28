@@ -8,6 +8,16 @@ defmodule Brainless.Application do
   @impl true
   def start(_type, _args) do
     children = [
+      {Nx.Serving,
+       serving: Brainless.Rag.Embedding.serving(),
+       name: Brainless.RagEmbeddingServing,
+       batch_size: 5,
+       batch_timeout: 1000},
+      {Nx.Serving,
+       serving: Brainless.Rag.Generation.serving(),
+       name: Brainless.RagGenerationServing,
+       batch_size: 5,
+       batch_timeout: 1000},
       BrainlessWeb.Telemetry,
       Brainless.Repo,
       {DNSCluster, query: Application.get_env(:brainless, :dns_cluster_query) || :ignore},
