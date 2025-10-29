@@ -20,6 +20,8 @@ if System.get_env("PHX_SERVER") do
   config :brainless, BrainlessWeb.Endpoint, server: true
 end
 
+config :brainless, :ai_provider, System.get_env("AI_PROVIDER")
+
 if config_env() == :prod do
   database_url =
     System.get_env("DATABASE_URL") ||

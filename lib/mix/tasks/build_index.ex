@@ -6,7 +6,17 @@ defmodule Mix.Tasks.BuildIndex do
   alias Brainless.Shop
   alias Brainless.Rag.Embedding
 
-  @requirements ["app.start"]
+  @requirements ["app.start", "app.config"]
+
+  def run(_) do
+    case Application.fetch_env!(:brainless, :ai_provider) do
+      "bumblebee" ->
+        update_index(:bumblebee, Shop.list_books())
+
+      "gemini" ->
+        update_index(:gemini, Shop.list_books())
+    end
+  end
 
   defp update_books(books, embeddings) do
     Enum.with_index(books)
@@ -55,9 +65,5 @@ defmodule Mix.Tasks.BuildIndex do
           book
       end
     end)
-  end
-
-  def run(_) do
-    update_index(:gemini, Shop.list_books())
   end
 end
