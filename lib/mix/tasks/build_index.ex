@@ -4,55 +4,92 @@ defmodule Mix.Tasks.BuildIndex do
   use Mix.Task
 
   alias Brainless.Shop
+  alias Brainless.MediaLibrary
   alias Brainless.Rag.Embedding
 
   @requirements ["app.start", "app.config"]
 
+  @model_gemini "models/text-embedding-004"
+
   def run(_) do
     case Application.fetch_env!(:brainless, :ai_provider) do
-      "bumblebee" ->
-        update_index(:bumblebee, Shop.list_books())
-
       "gemini" ->
-        update_index(:gemini, Shop.list_books())
+        update_books_embeddings(:gemini)
+        update_movies_embeddings(:gemini)
+
+      "bumblebee" ->
+        update_books_embeddings(:bumblebee)
+        update_movies_embeddings(:bumblebee)
     end
   end
 
-  defp update_books(books, embeddings) do
-    Enum.with_index(books)
-    |> Enum.map(fn {book, idx} ->
-      %{values: embedding} = Enum.at(embeddings, idx)
+  defp update_movies_embeddings(:gemini) do
+    MediaLibrary.list_movies()
+    |> Enum.chunk_every(50)
+    |> Enum.map(fn movies ->
+      texts = Enum.map(movies, & &1.description)
 
-      case Shop.update_book(book, %{embedding: embedding}) do
-        {:ok, updated_book} ->
-          dbg({"updated", book.id, book.name})
-          updated_book
+      {:ok, embeddings} = get_embeddings(:gemini, texts)
 
-        {:error, changeset} ->
-          dbg({"error", book.id, book.name, changeset.errors})
-          book
+      if length(embeddings) != length(movies) do
+        raise "embeddings size != movies size"
       end
+
+      Enum.with_index(movies)
+      |> Enum.map(fn {movie, idx} ->
+        %{values: embedding} = Enum.at(embeddings, idx)
+
+        case MediaLibrary.update_movie(movie, %{embedding: embedding}) do
+          {:ok, updated_movie} ->
+            dbg({"updated", movie.id, movie.title})
+            updated_movie
+
+          {:error, changeset} ->
+            dbg({"error", movie.id, movie.title, changeset.errors})
+            movie
+        end
+      end)
     end)
+    |> List.flatten()
   end
 
-  defp update_index(:gemini, books) do
-    texts = Enum.map(books, & &1.description)
-
-    {:ok, response} =
-      ExLLM.Providers.Gemini.Embeddings.embed_texts("models/text-embedding-004", texts,
-        cache: true,
-        cache_ttl: :timer.minutes(10)
-      )
-
-    if length(response) != length(books) do
-      raise "response size != books size"
-    end
-
-    update_books(books, response)
+  defp update_movies_embeddings(:bumblebee) do
+    []
   end
 
-  defp update_index(:bumblebee, books) do
-    Enum.map(books, fn book ->
+  defp update_books_embeddings(:gemini) do
+    Shop.list_books()
+    |> Enum.chunk_every(50)
+    |> Enum.map(fn books ->
+      texts = Enum.map(books, & &1.description)
+
+      {:ok, embeddings} = get_embeddings(:gemini, texts)
+
+      if length(embeddings) != length(books) do
+        raise "embeddings size != books size"
+      end
+
+      Enum.with_index(books)
+      |> Enum.map(fn {book, idx} ->
+        %{values: embedding} = Enum.at(embeddings, idx)
+
+        case Shop.update_book(book, %{embedding: embedding}) do
+          {:ok, updated_book} ->
+            dbg({"updated", book.id, book.name})
+            updated_book
+
+          {:error, changeset} ->
+            dbg({"error", book.id, book.name, changeset.errors})
+            book
+        end
+      end)
+    end)
+    |> List.flatten()
+  end
+
+  defp update_books_embeddings(:bumblebee) do
+    Shop.list_books()
+    |> Enum.map(fn book ->
       %{embedding: embedding} = Embedding.predict(book.description)
 
       case Shop.update_book(book, %{embedding: embedding}) do
@@ -65,5 +102,12 @@ defmodule Mix.Tasks.BuildIndex do
           book
       end
     end)
+  end
+
+  defp get_embeddings(:gemini, texts) do
+    ExLLM.Providers.Gemini.Embeddings.embed_texts(@model_gemini, texts,
+      cache: true,
+      cache_ttl: :timer.minutes(10)
+    )
   end
 end
