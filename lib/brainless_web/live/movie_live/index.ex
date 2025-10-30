@@ -7,6 +7,7 @@ defmodule BrainlessWeb.MovieLive.Index do
   alias Brainless.Repo
   alias Brainless.MediaLibrary
   alias Brainless.MediaLibrary.Movie
+  alias Brainless.Rag.Embedding
 
   defmodule BrainlessWeb.MovieLive.Index.SearchForm do
     use Ecto.Schema
@@ -28,14 +29,13 @@ defmodule BrainlessWeb.MovieLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    movies = MediaLibrary.list_movies()
     search_form = SearchForm.changeset(%SearchForm{}, %{}) |> to_form()
 
     {:ok,
      socket
      |> assign(:page_title, "Listing Movies")
      |> assign(:search_form, search_form)
-     |> stream(:movies, movies)}
+     |> stream(:movies, [])}
   end
 
   @impl true
@@ -52,10 +52,9 @@ defmodule BrainlessWeb.MovieLive.Index do
 
     movies =
       if String.length(query) == 0 do
-        MediaLibrary.list_movies()
+        []
       else
-        {:ok, %{values: vector}} =
-          ExLLM.Providers.Gemini.Embeddings.embed_text("models/text-embedding-004", query)
+        {:ok, vector} = Embedding.predict(:gemini, query)
 
         Repo.all(
           from movie in Movie,

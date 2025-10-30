@@ -13,7 +13,11 @@ defmodule Brainless.Rag.Generation do
     )
   end
 
-  def predict(prompt) do
+  def predict(:bumblebee, prompt) do
     Nx.Serving.batched_run(__MODULE__, prompt)
+  end
+
+  def predict(:gemini, _prompt) do
+    nil
   end
 end

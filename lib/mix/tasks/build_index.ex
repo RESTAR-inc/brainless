@@ -9,8 +9,6 @@ defmodule Mix.Tasks.BuildIndex do
 
   @requirements ["app.start", "app.config"]
 
-  @model_gemini "models/text-embedding-004"
-
   def run(_) do
     case Application.fetch_env!(:brainless, :ai_provider) do
       "gemini" ->
@@ -29,7 +27,7 @@ defmodule Mix.Tasks.BuildIndex do
     |> Enum.map(fn movies ->
       texts = Enum.map(movies, & &1.description)
 
-      {:ok, embeddings} = get_embeddings(:gemini, texts)
+      {:ok, embeddings} = Embedding.predict_many(:gemini, texts)
 
       if length(embeddings) != length(movies) do
         raise "embeddings size != movies size"
@@ -37,7 +35,7 @@ defmodule Mix.Tasks.BuildIndex do
 
       Enum.with_index(movies)
       |> Enum.map(fn {movie, idx} ->
-        %{values: embedding} = Enum.at(embeddings, idx)
+        embedding = Enum.at(embeddings, idx)
 
         case MediaLibrary.update_movie(movie, %{embedding: embedding}) do
           {:ok, updated_movie} ->
@@ -63,7 +61,7 @@ defmodule Mix.Tasks.BuildIndex do
     |> Enum.map(fn books ->
       texts = Enum.map(books, & &1.description)
 
-      {:ok, embeddings} = get_embeddings(:gemini, texts)
+      {:ok, embeddings} = Embedding.predict_many(:gemini, texts)
 
       if length(embeddings) != length(books) do
         raise "embeddings size != books size"
@@ -71,7 +69,7 @@ defmodule Mix.Tasks.BuildIndex do
 
       Enum.with_index(books)
       |> Enum.map(fn {book, idx} ->
-        %{values: embedding} = Enum.at(embeddings, idx)
+        embedding = Enum.at(embeddings, idx)
 
         case Shop.update_book(book, %{embedding: embedding}) do
           {:ok, updated_book} ->
@@ -90,7 +88,7 @@ defmodule Mix.Tasks.BuildIndex do
   defp update_books_embeddings(:bumblebee) do
     Shop.list_books()
     |> Enum.map(fn book ->
-      %{embedding: embedding} = Embedding.predict(book.description)
+      %{embedding: embedding} = Embedding.predict(:bumblebee, book.description)
 
       case Shop.update_book(book, %{embedding: embedding}) do
         {:ok, updated_book} ->
@@ -102,12 +100,5 @@ defmodule Mix.Tasks.BuildIndex do
           book
       end
     end)
-  end
-
-  defp get_embeddings(:gemini, texts) do
-    ExLLM.Providers.Gemini.Embeddings.embed_texts(@model_gemini, texts,
-      cache: true,
-      cache_ttl: :timer.minutes(10)
-    )
   end
 end
