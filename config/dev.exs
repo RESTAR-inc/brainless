@@ -91,6 +91,6 @@ config :swoosh, :api_client, false
 config :brainless, Brainless.Rag,
   # embedding_provider: "gemini",
   embedding_provider: "bumblebee",
-  # generation_provider: "gemini",
-  generation_provider: "bumblebee",
+  generation_provider: "gemini",
+  # generation_provider: "bumblebee",
   hf_token: System.get_env("RAG_HF_TOKEN")

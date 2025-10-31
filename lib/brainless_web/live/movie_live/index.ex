@@ -10,6 +10,7 @@ defmodule BrainlessWeb.MovieLive.Index do
     {:ok,
      socket
      |> assign(:page_title, "Listing Movies")
+     |> assign(:ai_response, nil)
      |> stream(:movies, [])}
   end
 
@@ -25,20 +26,16 @@ defmodule BrainlessWeb.MovieLive.Index do
   def handle_event("search", %{"query" => query}, socket) do
     query = String.trim(query)
 
-    movies =
-      if String.length(query) == 0 do
-        []
-      else
-        case Rag.to_vector(query) do
-          {:ok, vector} ->
-            MediaLibrary.retrieve_movies(vector, preload: [:director, :cast, :genres])
+    if String.length(query) == 0 do
+      {:noreply, socket |> stream(:movies, [], reset: true)}
+    else
+      {:ok, movies, ai_response} = Rag.generate(query)
 
-          _ ->
-            []
-        end
-      end
-
-    {:noreply, socket |> stream(:movies, movies, reset: true)}
+      {:noreply,
+       socket
+       |> stream(:movies, movies, reset: true)
+       |> assign(:ai_response, ai_response)}
+    end
   end
 
   @impl true
@@ -58,6 +55,10 @@ defmodule BrainlessWeb.MovieLive.Index do
         <.input type="text" name="query" value="" />
         <.button phx-disable-with="..." variant="primary">Search</.button>
       </form>
+
+      <div :if={@ai_response != nil} class="whitespace-pre-wrap p-4 w-full">
+        {@ai_response}
+      </div>
 
       <.table
         id="movies"

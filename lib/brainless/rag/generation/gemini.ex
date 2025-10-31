@@ -10,8 +10,7 @@ defmodule Brainless.Rag.Generation.Gemini do
 
     case ExLLM.chat(:gemini, [msg]) do
       {:ok, %ExLLM.Types.LLMResponse{} = response} ->
-        dbg({"Brainless.Rag.Generation.Gemini", response})
-        {:ok, []}
+        {:ok, [response.content]}
 
       {:error, reason} ->
         {:error, reason}

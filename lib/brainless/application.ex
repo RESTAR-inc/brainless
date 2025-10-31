@@ -44,20 +44,20 @@ defmodule Brainless.Application do
           base_children
       end
 
-    # base_children =
-    #   case Brainless.Rag.Config.generation_provider() do
-    #     :bumblebee ->
-    #       base_children ++
-    #         [
-    #           {Nx.Serving,
-    #            name: Brainless.Rag.Generation.Bumblebee,
-    #            batch_timeout: 50,
-    #            serving: Brainless.Rag.Generation.Bumblebee.serving()}
-    #         ]
+    base_children =
+      case Brainless.Rag.Config.generation_provider() do
+        :bumblebee ->
+          base_children ++
+            [
+              {Nx.Serving,
+               name: Brainless.Rag.Generation.Bumblebee,
+               batch_timeout: 50,
+               serving: Brainless.Rag.Generation.Bumblebee.serving()}
+            ]
 
-    #     _ ->
-    #       base_children
-    #   end
+        _ ->
+          base_children
+      end
 
     base_children ++ [BrainlessWeb.Endpoint]
   end
