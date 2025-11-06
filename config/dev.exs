@@ -93,4 +93,4 @@ config :brainless, Brainless.Rag,
   embedding_provider: "bumblebee",
   generation_provider: "gemini",
   # generation_provider: "bumblebee",
-  hf_token: System.get_env("RAG_HF_TOKEN")
+  hf_token: System.get_env("HF_TOKEN")

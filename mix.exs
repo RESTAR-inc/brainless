@@ -70,8 +70,7 @@ defmodule Brainless.MixProject do
       {:pgvector, "~> 0.3.0"},
       {:bumblebee, "~> 0.6.0"},
       {:exla, "~> 0.10"},
-      {:ex_llm, "~> 0.8.1"},
-      {:emlx, github: "elixir-nx/emlx", branch: "main", optional: true}
+      {:req_llm, "~> 1.0.0"}
     ]
   end
 

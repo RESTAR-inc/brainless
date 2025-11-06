@@ -4,30 +4,15 @@ defmodule Brainless.Rag.Embedding.Gemini do
   """
   use Brainless.Rag.Embedding.Provider
 
-  @model_gemini "models/text-embedding-004"
+  @model_gemini "google:gemini-embedding-001"
 
   @impl true
   def to_vector(input) do
-    case ExLLM.Providers.Gemini.Embeddings.embed_text(@model_gemini, input) do
-      {:ok, %{values: vector}} ->
-        {:ok, vector}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
+    ReqLLM.embed(@model_gemini, input, dimensions: 768)
   end
 
   @impl true
   def to_vector_list(inputs) do
-    case ExLLM.Providers.Gemini.Embeddings.embed_texts(@model_gemini, inputs,
-           cache: true,
-           cache_ttl: :timer.minutes(10)
-         ) do
-      {:ok, values} ->
-        {:ok, Enum.map(values, fn %{values: embeddings} -> embeddings end)}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
+    ReqLLM.embed(@model_gemini, inputs, dimensions: 768)
   end
 end
