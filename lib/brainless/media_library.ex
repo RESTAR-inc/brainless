@@ -16,10 +16,18 @@ defmodule Brainless.MediaLibrary do
     |> Repo.insert()
   end
 
+  def list_genres do
+    Repo.all(Genre)
+  end
+
   def create_person(attrs) do
     %Person{}
     |> Person.changeset(attrs)
     |> Repo.insert()
+  end
+
+  def list_persons do
+    Repo.all(Person)
   end
 
   @doc """
@@ -32,7 +40,7 @@ defmodule Brainless.MediaLibrary do
 
   """
   def list_movies do
-    Repo.all(Movie)
+    Repo.all(Movie) |> Repo.preload([:director, :cast, :genres])
   end
 
   @doc """
@@ -49,7 +57,7 @@ defmodule Brainless.MediaLibrary do
       ** (Ecto.NoResultsError)
 
   """
-  def get_movie!(id), do: Repo.get!(Movie, id)
+  def get_movie!(id), do: Repo.get!(Movie, id) |> Repo.preload([:director, :genres, :cast])
 
   @doc """
   Creates a movie.

@@ -17,11 +17,15 @@ defmodule BrainlessWeb.MovieLive.Form do
         <.input field={@form[:title]} type="text" label="Title" />
         <.input field={@form[:description]} type="textarea" label="Description" />
         <.input field={@form[:poster_url]} type="text" label="Poster url" />
-        <.input field={@form[:genre]} type="text" label="Genre" />
-        <.input field={@form[:director]} type="text" label="Director" />
         <.input field={@form[:release_date]} type="date" label="Release date" />
         <.input field={@form[:imdb_rating]} type="number" label="Imdb rating" step="any" />
         <.input field={@form[:meta_score]} type="number" label="Meta score" />
+
+        <%!-- <.inputs_for :let={genre} field={@form[:genres]}>
+          <.input field={genre} type="select" options={@genre_options} />
+        </.inputs_for> --%>
+        <.input field={@form[:director_id]} type="select" options={@person_options} label="Director" />
+
         <footer>
           <.button phx-disable-with="Saving..." variant="primary">Save Movie</.button>
           <.button navigate={return_path(@return_to, @movie)}>Cancel</.button>
@@ -32,10 +36,19 @@ defmodule BrainlessWeb.MovieLive.Form do
   end
 
   @impl true
+  @spec mount(nil | maybe_improper_list() | map(), any(), map()) :: {:ok, map()}
   def mount(params, _session, socket) do
+    persons = MediaLibrary.list_persons()
+    person_options = persons |> Enum.map(&{&1.name, &1.id})
+
+    genres = MediaLibrary.list_genres()
+    genre_options = genres |> Enum.map(&{&1.name, &1.id})
+
     {:ok,
      socket
      |> assign(:return_to, return_to(params["return_to"]))
+     |> assign(:person_options, person_options)
+     |> assign(:genre_options, genre_options)
      |> apply_action(socket.assigns.live_action, params)}
   end
 

@@ -1,4 +1,7 @@
 defmodule Brainless.MediaLibrary.Person do
+  @moduledoc """
+  Person schema
+  """
   use Ecto.Schema
   import Ecto.Changeset
 

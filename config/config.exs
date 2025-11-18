@@ -7,6 +7,12 @@
 # General application configuration
 import Config
 
+config :brainless, Brainless.Rag.Embedding,
+  provider: :local,
+  dimensions: 768
+
+config :brainless, Brainless.Rag.Generation, provider: :gemini
+
 config :brainless,
   ecto_repos: [Brainless.Repo],
   generators: [timestamp_type: :utc_datetime]

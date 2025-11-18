@@ -1,7 +1,13 @@
-defmodule Brainless.Rag.Embedding.Bumblebee do
+defmodule Brainless.Rag.Embedding.Provider.Local do
   @moduledoc """
   List of compatible models with 768 dimensions
-    - sentence-transformers/gtr-t5-base
+    - sentence-transformers/gtr-t5-base (~220 MB, english only)
+    - sentence-transformers/LaBSE (~1.9 GB, multilang)
+    - sentence-transformers/distiluse-base-multilingual-cased-v2 (~540 MB, multilang)
+    - sentence-transformers/paraphrase-multilingual-mpnet-base-v2 (~1.1 GB, multilang)
+
+  Check:
+    - pfnet/plamo-embedding-1b
 
   """
   use Brainless.Rag.Embedding.Provider
@@ -25,8 +31,7 @@ defmodule Brainless.Rag.Embedding.Bumblebee do
   end
 
   @impl true
-  @spec to_vector(any()) :: {:error, <<_::40>>} | {:ok, any()}
-  def to_vector(input) do
+  def to_vector(input, _opts \\ []) do
     case Nx.Serving.batched_run(__MODULE__, input) do
       %{embedding: embedding} ->
         {:ok, embedding |> Nx.to_list()}
@@ -37,7 +42,7 @@ defmodule Brainless.Rag.Embedding.Bumblebee do
   end
 
   @impl true
-  def to_vector_list(inputs) do
+  def to_vector_list(inputs, _opts \\ []) do
     case Nx.Serving.batched_run(__MODULE__, inputs) do
       values when is_list(values) ->
         embeddings = Enum.map(values, fn %{embedding: embedding} -> Nx.to_list(embedding) end)

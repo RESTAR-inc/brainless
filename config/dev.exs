@@ -87,10 +87,3 @@ config :phoenix_live_view,
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
-
-config :brainless, Brainless.Rag,
-  # embedding_provider: "gemini",
-  embedding_provider: "bumblebee",
-  generation_provider: "gemini",
-  # generation_provider: "bumblebee",
-  hf_token: System.get_env("HF_TOKEN")

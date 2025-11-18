@@ -1,5 +1,8 @@
 defmodule Brainless.Rag.Generation.Provider do
-  @callback generate(String.t()) :: {:error, term()} | {:ok, [String.t()] | nil}
+  @moduledoc """
+  Generation provider behaviour
+  """
+  @callback predict(input :: String.t()) :: {:error, term()} | {:ok, [String.t()]}
 
   defmacro __using__(_opts) do
     quote do

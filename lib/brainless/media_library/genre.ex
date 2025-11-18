@@ -1,4 +1,7 @@
 defmodule Brainless.MediaLibrary.Genre do
+  @moduledoc """
+  Genre schema
+  """
   use Ecto.Schema
   import Ecto.Changeset
 

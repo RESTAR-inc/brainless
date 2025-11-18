@@ -3,11 +3,10 @@ defmodule BrainlessWeb.MovieLive.Show do
 
   alias Brainless.MediaLibrary
   alias Brainless.MediaLibrary.Movie
-  alias Brainless.Repo
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
-    movie = MediaLibrary.get_movie!(id) |> Repo.preload([:director, :genres, :cast])
+    movie = MediaLibrary.get_movie!(id)
 
     {:ok,
      socket

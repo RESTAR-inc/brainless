@@ -1,19 +1,31 @@
 defmodule Brainless.Rag.Embedding do
-  use Brainless.Rag.Embedding.Provider
+  @moduledoc """
+  Root embedding
+  """
+  alias Brainless.Rag.Embedding.Provider.Local
+  alias Brainless.Rag.Embedding.Provider.Gemini
 
-  @impl true
+  @spec to_vector(input :: String.t()) :: {:error, term()} | {:ok, [float()]}
   def to_vector(input) do
-    case Brainless.Rag.Config.embedding_provider() do
-      :gemini -> Brainless.Rag.Embedding.Gemini.to_vector(input)
-      :bumblebee -> Brainless.Rag.Embedding.Bumblebee.to_vector(input)
+    case provider() do
+      :gemini -> Gemini.to_vector(input, dimensions: dimensions())
+      :local -> Local.to_vector(input)
     end
   end
 
-  @impl true
+  @callback to_vector_list(inputs :: [String.t()]) :: {:error, map()} | {:ok, [[float()]]}
   def to_vector_list(inputs) do
-    case Brainless.Rag.Config.embedding_provider() do
-      :gemini -> Brainless.Rag.Embedding.Gemini.to_vector_list(inputs)
-      :bumblebee -> Brainless.Rag.Embedding.Bumblebee.to_vector_list(inputs)
+    case provider() do
+      :gemini -> Gemini.to_vector_list(inputs, dimensions: dimensions())
+      :local -> Local.to_vector_list(inputs)
     end
+  end
+
+  def provider do
+    Keyword.fetch!(Application.fetch_env!(:brainless, __MODULE__), :provider)
+  end
+
+  def dimensions do
+    Keyword.fetch!(Application.fetch_env!(:brainless, __MODULE__), :dimensions)
   end
 end

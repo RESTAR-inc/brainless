@@ -1,4 +1,7 @@
 defmodule Brainless.MediaLibrary.Movie do
+  @moduledoc """
+  Movie schema
+  """
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -51,11 +54,11 @@ defmodule Brainless.MediaLibrary.Movie do
   end
 
   def format_genres(movie) do
-    movie.genres |> Enum.map(& &1.name) |> Enum.join(", ")
+    Enum.map_join(movie.genres, ", ", & &1.name)
   end
 
   def format_cast(movie) do
-    movie.cast |> Enum.map(& &1.name) |> Enum.join(", ")
+    Enum.map_join(movie.cast, ", ", & &1.name)
   end
 
   def format_for_embedding(%__MODULE__{} = movie) do

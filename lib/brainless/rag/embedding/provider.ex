@@ -1,6 +1,11 @@
 defmodule Brainless.Rag.Embedding.Provider do
-  @callback to_vector(String.t()) :: {:error, term()} | {:ok, [float()]}
-  @callback to_vector_list([String.t()]) :: {:error, map()} | {:ok, [[float()]]}
+  @moduledoc """
+  Embedding behavior
+  """
+  @callback to_vector(input :: String.t(), opts :: keyword()) ::
+              {:error, term()} | {:ok, [float()]}
+  @callback to_vector_list(inputs :: [String.t()], opts :: keyword()) ::
+              {:error, map()} | {:ok, [[float()]]}
 
   defmacro __using__(_opts) do
     quote do

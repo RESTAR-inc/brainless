@@ -6,6 +6,7 @@ defmodule Mix.Tasks.Seed do
   use Mix.Task
 
   import Ecto.Changeset
+  require Logger
 
   alias Brainless.Repo
 
@@ -75,11 +76,11 @@ defmodule Mix.Tasks.Seed do
     |> Enum.map(fn name ->
       case MediaLibrary.create_genre(%{name: name}) do
         {:ok, %Genre{} = new_genre} ->
-          dbg({"Genre:ok", new_genre.id, new_genre.name})
+          Logger.info("Genre:ok #{new_genre.id}/#{new_genre.name}")
           new_genre
 
-        {:error, changeset} ->
-          dbg({"Genre:error", name, changeset.errors})
+        {:error, _} ->
+          Logger.error("Genre:error #{name}")
           raise "Genre Import Error"
       end
     end)
@@ -101,11 +102,11 @@ defmodule Mix.Tasks.Seed do
     |> Enum.map(fn name ->
       case MediaLibrary.create_person(%{name: name}) do
         {:ok, %Person{} = new_person} ->
-          dbg({"Person:ok", new_person.id, new_person.name})
+          Logger.info("Person:ok #{new_person.id}/#{new_person.name}")
           new_person
 
-        {:error, changeset} ->
-          dbg({"Person:error", name, changeset.errors})
+        {:error, _} ->
+          Logger.error("Person:error #{name}")
           raise "Person Import Error"
       end
     end)
@@ -197,7 +198,7 @@ defmodule Mix.Tasks.Seed do
 
       case MediaLibrary.create_movie(attrs) do
         {:ok, %Movie{} = new_movie} ->
-          dbg({"Movie:ok", new_movie.id, new_movie.title})
+          Logger.info("Movie:ok #{new_movie.id}/#{new_movie.title}")
 
           new_movie
           |> Repo.preload([:genres, :cast])
@@ -208,8 +209,8 @@ defmodule Mix.Tasks.Seed do
           |> put_assoc(:cast, cast)
           |> Repo.update()
 
-        {:error, changeset} ->
-          dbg({"Movie:error", data[:title], changeset.errors})
+        {:error, _} ->
+          Logger.error("Movie:error #{data[:title]}")
           raise "Movie Import Error"
       end
     end)

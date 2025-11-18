@@ -30,14 +30,14 @@ defmodule Brainless.Application do
     ]
 
     base_children =
-      case Brainless.Rag.Config.embedding_provider() do
-        :bumblebee ->
+      case Brainless.Rag.Embedding.provider() do
+        :local ->
           base_children ++
             [
               {Nx.Serving,
-               name: Brainless.Rag.Embedding.Bumblebee,
+               name: Brainless.Rag.Embedding.Provider.Local,
                batch_timeout: 50,
-               serving: Brainless.Rag.Embedding.Bumblebee.serving()}
+               serving: Brainless.Rag.Embedding.Provider.Local.serving()}
             ]
 
         _ ->
@@ -45,14 +45,14 @@ defmodule Brainless.Application do
       end
 
     base_children =
-      case Brainless.Rag.Config.generation_provider() do
-        :bumblebee ->
+      case Brainless.Rag.Generation.provider() do
+        :local ->
           base_children ++
             [
               {Nx.Serving,
-               name: Brainless.Rag.Generation.Bumblebee,
+               name: Brainless.Rag.Generation.Provider.Local,
                batch_timeout: 50,
-               serving: Brainless.Rag.Generation.Bumblebee.serving()}
+               serving: Brainless.Rag.Generation.Provider.Local.serving()}
             ]
 
         _ ->

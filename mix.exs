@@ -66,6 +66,7 @@ defmodule Brainless.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:nimble_csv, "~> 1.1"},
       {:pgvector, "~> 0.3.0"},
       {:bumblebee, "~> 0.6.0"},

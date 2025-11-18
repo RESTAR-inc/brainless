@@ -29,7 +29,7 @@ defmodule BrainlessWeb.MovieLive.Index do
     if String.length(query) == 0 do
       {:noreply, socket |> stream(:movies, [], reset: true)}
     else
-      {:ok, movies, ai_response} = Rag.generate(query)
+      {:ok, movies, ai_response} = Rag.predict(query)
 
       {:noreply,
        socket
