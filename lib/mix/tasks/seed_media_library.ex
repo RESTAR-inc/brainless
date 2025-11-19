@@ -1,6 +1,4 @@
-NimbleCSV.define(BrainlessSeedParser, separator: ",", escape: "\"")
-
-defmodule Mix.Tasks.Seed do
+defmodule Mix.Tasks.SeedMediaLibrary do
   @moduledoc "Seed the database"
 
   use Mix.Task
@@ -10,6 +8,7 @@ defmodule Mix.Tasks.Seed do
 
   alias Brainless.Repo
 
+  alias Brainless.CsvParser
   alias Brainless.MediaLibrary
   alias Brainless.MediaLibrary.{Movie, Genre, Person}
 
@@ -64,7 +63,7 @@ defmodule Mix.Tasks.Seed do
 
   defp seed_genres() do
     File.stream!(@csv_file_path)
-    |> BrainlessSeedParser.parse_stream()
+    |> CsvParser.parse_stream()
     |> Stream.map(fn row ->
       %{genre: genre} = movie_row_to_map(row)
 
@@ -89,7 +88,7 @@ defmodule Mix.Tasks.Seed do
 
   defp seed_persons() do
     File.stream!(@csv_file_path)
-    |> BrainlessSeedParser.parse_stream()
+    |> CsvParser.parse_stream()
     |> Stream.map(fn row ->
       movie_row_to_map(row)
       |> Map.take([:director, :star1, :star2, :star3, :star4])
@@ -146,7 +145,7 @@ defmodule Mix.Tasks.Seed do
 
   defp seed_movies(genres, persons) do
     File.stream!(@csv_file_path)
-    |> BrainlessSeedParser.parse_stream()
+    |> CsvParser.parse_stream()
     |> Stream.map(fn row ->
       data =
         movie_row_to_map(row)
