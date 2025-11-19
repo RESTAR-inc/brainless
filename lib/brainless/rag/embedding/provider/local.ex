@@ -6,14 +6,11 @@ defmodule Brainless.Rag.Embedding.Provider.Local do
     - sentence-transformers/distiluse-base-multilingual-cased-v2 (~540 MB, multilang)
     - sentence-transformers/paraphrase-multilingual-mpnet-base-v2 (~1.1 GB, multilang)
 
-  Check:
-    - pfnet/plamo-embedding-1b
-
   """
   use Brainless.Rag.Embedding.Provider
   require Logger
 
-  @model_repo {:hf, "sentence-transformers/gtr-t5-base"}
+  @model_repo {:hf, "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"}
 
   @spec serving() :: Nx.Serving.t()
   def serving do

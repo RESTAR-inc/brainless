@@ -15,9 +15,9 @@ defmodule Mix.Tasks.Seed do
 
   @requirements ["app.start"]
 
-  @csv_movies "priv/data/imdb_top_1000.csv"
+  @csv_file_path "priv/data/imdb_top_1000.csv"
 
-  defp movie_row([
+  defp movie_row_to_map([
          poster_url,
          title,
          release_year,
@@ -62,11 +62,11 @@ defmodule Mix.Tasks.Seed do
     |> Enum.uniq()
   end
 
-  defp seed_genres do
-    File.stream!(@csv_movies)
+  defp seed_genres() do
+    File.stream!(@csv_file_path)
     |> BrainlessSeedParser.parse_stream()
     |> Stream.map(fn row ->
-      %{genre: genre} = movie_row(row)
+      %{genre: genre} = movie_row_to_map(row)
 
       prepare_genre(genre)
     end)
@@ -87,11 +87,11 @@ defmodule Mix.Tasks.Seed do
     |> Enum.into(%{}, &{&1.name, &1})
   end
 
-  defp seed_persons do
-    File.stream!(@csv_movies)
+  defp seed_persons() do
+    File.stream!(@csv_file_path)
     |> BrainlessSeedParser.parse_stream()
     |> Stream.map(fn row ->
-      movie_row(row)
+      movie_row_to_map(row)
       |> Map.take([:director, :star1, :star2, :star3, :star4])
       |> Map.values()
       |> Enum.map(&String.trim(&1))
@@ -113,12 +113,43 @@ defmodule Mix.Tasks.Seed do
     |> Enum.into(%{}, &{&1.name, &1})
   end
 
+  defp parse_int(input) do
+    case Integer.parse(input) do
+      {value, _} -> value
+      :error -> nil
+    end
+  end
+
+  defp parse_value(:release_year, data) do
+    case Integer.parse(data[:release_year]) do
+      {value, _} -> Date.new!(value, 1, 1)
+      :error -> nil
+    end
+  end
+
+  defp parse_value(:meta_score, data), do: parse_int(data[:meta_score])
+  defp parse_value(:imdb_rating, data), do: parse_int(data[:imdb_rating])
+  defp parse_value(:number_of_votes, data), do: parse_int(data[:number_of_votes])
+
+  defp parse_value(:gross, data) do
+    case data[:gross] do
+      nil ->
+        nil
+
+      value when is_binary(value) ->
+        case String.replace(value, ",", "") |> Integer.parse() do
+          {val, _} -> val
+          :error -> nil
+        end
+    end
+  end
+
   defp seed_movies(genres, persons) do
-    File.stream!(@csv_movies)
+    File.stream!(@csv_file_path)
     |> BrainlessSeedParser.parse_stream()
     |> Stream.map(fn row ->
       data =
-        movie_row(row)
+        movie_row_to_map(row)
         |> Map.take([
           :title,
           :description,
@@ -136,42 +167,6 @@ defmodule Mix.Tasks.Seed do
           :star4
         ])
 
-      release_date =
-        case Integer.parse(data[:release_year]) do
-          {value, _} -> Date.new!(value, 1, 1)
-          :error -> nil
-        end
-
-      meta_score =
-        case Integer.parse(data[:meta_score]) do
-          {value, _} -> value
-          :error -> nil
-        end
-
-      imdb_rating =
-        case Integer.parse(data[:imdb_rating]) do
-          {value, _} -> value
-          :error -> nil
-        end
-
-      number_of_votes =
-        case Integer.parse(data[:number_of_votes]) do
-          {value, _} -> value
-          :error -> nil
-        end
-
-      gross =
-        case data[:gross] do
-          nil ->
-            nil
-
-          value when is_binary(value) ->
-            case String.replace(value, ",", "") |> Integer.parse() do
-              {val, _} -> val
-              :error -> nil
-            end
-        end
-
       director = Map.get(persons, String.trim(data[:director]))
       genres = prepare_genre(data[:genre]) |> Enum.map(&Map.fetch!(genres, &1))
 
@@ -188,11 +183,11 @@ defmodule Mix.Tasks.Seed do
           title: data[:title],
           description: data[:description],
           poster_url: data[:poster_url],
-          release_date: release_date,
-          imdb_rating: imdb_rating,
-          meta_score: meta_score,
-          gross: gross,
-          number_of_votes: number_of_votes,
+          release_date: parse_value(:release_year, data),
+          imdb_rating: parse_value(:imdb_rating, data),
+          meta_score: parse_value(:meta_score, data),
+          gross: parse_value(:gross, data),
+          number_of_votes: parse_value(:number_of_votes, data),
           director_id: director.id
         }
 
