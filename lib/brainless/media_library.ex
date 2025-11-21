@@ -8,7 +8,7 @@ defmodule Brainless.MediaLibrary do
 
   alias Brainless.Repo
 
-  alias Brainless.MediaLibrary.{Movie, Genre, Person}
+  alias Brainless.MediaLibrary.{Genre, Movie, Person}
 
   def create_genre(attrs) do
     %Genre{}

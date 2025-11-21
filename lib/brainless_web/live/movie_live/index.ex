@@ -1,9 +1,9 @@
 defmodule BrainlessWeb.MovieLive.Index do
   use BrainlessWeb, :live_view
 
-  alias Brainless.Rag
   alias Brainless.MediaLibrary
   alias Brainless.MediaLibrary.Movie
+  alias Brainless.Rag
 
   @impl true
   def mount(_params, _session, socket) do

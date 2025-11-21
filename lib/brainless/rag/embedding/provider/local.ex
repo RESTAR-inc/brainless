@@ -10,12 +10,12 @@ defmodule Brainless.Rag.Embedding.Provider.Local do
   use Brainless.Rag.Embedding.Provider
   require Logger
 
-  @model_repo {:hf, "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"}
+  @spec serving(opts :: keyword()) :: Nx.Serving.t()
+  def serving(opts) do
+    model_repo = {:hf, Keyword.get(opts, :model)}
 
-  @spec serving() :: Nx.Serving.t()
-  def serving do
-    {:ok, model_info} = Bumblebee.load_model(@model_repo)
-    {:ok, tokenizer} = Bumblebee.load_tokenizer(@model_repo)
+    {:ok, model_info} = Bumblebee.load_model(model_repo)
+    {:ok, tokenizer} = Bumblebee.load_tokenizer(model_repo)
 
     Logger.info("Starting Bumblebee embedding...")
 

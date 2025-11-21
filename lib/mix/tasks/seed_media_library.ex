@@ -10,7 +10,7 @@ defmodule Mix.Tasks.SeedMediaLibrary do
 
   alias Brainless.CsvParser
   alias Brainless.MediaLibrary
-  alias Brainless.MediaLibrary.{Movie, Genre, Person}
+  alias Brainless.MediaLibrary.{Genre, Movie, Person}
 
   @requirements ["app.start"]
 
@@ -61,7 +61,7 @@ defmodule Mix.Tasks.SeedMediaLibrary do
     |> Enum.uniq()
   end
 
-  defp seed_genres() do
+  defp seed_genres do
     File.stream!(@csv_file_path)
     |> CsvParser.parse_stream()
     |> Stream.map(fn row ->
@@ -86,8 +86,9 @@ defmodule Mix.Tasks.SeedMediaLibrary do
     |> Enum.into(%{}, &{&1.name, &1})
   end
 
-  defp seed_persons() do
-    File.stream!(@csv_file_path)
+  defp seed_persons do
+    @csv_file_path
+    |> File.stream!()
     |> CsvParser.parse_stream()
     |> Stream.map(fn row ->
       movie_row_to_map(row)
@@ -203,7 +204,7 @@ defmodule Mix.Tasks.SeedMediaLibrary do
           |> put_assoc(:cast, cast)
           |> Repo.update()
 
-        {:error, _} ->
+        {:error, _error} ->
           Logger.error("Movie:error #{data[:title]}")
           raise "Movie Import Error"
       end
@@ -211,7 +212,7 @@ defmodule Mix.Tasks.SeedMediaLibrary do
     |> Stream.run()
   end
 
-  def run(_) do
+  def run(_opts) do
     genres = seed_genres()
     persons = seed_persons()
     seed_movies(genres, persons)

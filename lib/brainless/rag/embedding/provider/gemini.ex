@@ -4,17 +4,19 @@ defmodule Brainless.Rag.Embedding.Provider.Gemini do
   """
   use Brainless.Rag.Embedding.Provider
 
-  @model_gemini "google:gemini-embedding-001"
-
   @impl true
   def to_vector(input, opts) do
     dimensions = Keyword.get(opts, :dimensions)
-    ReqLLM.embed(@model_gemini, input, dimensions: dimensions)
+    model = Keyword.get(opts, :model)
+
+    ReqLLM.embed(model, input, dimensions: dimensions)
   end
 
   @impl true
   def to_vector_list(inputs, opts) do
     dimensions = Keyword.get(opts, :dimensions)
-    ReqLLM.embed(@model_gemini, inputs, dimensions: dimensions)
+    model = Keyword.get(opts, :model)
+
+    ReqLLM.embed(model, inputs, dimensions: dimensions)
   end
 end

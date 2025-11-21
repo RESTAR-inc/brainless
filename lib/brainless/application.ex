@@ -30,32 +30,36 @@ defmodule Brainless.Application do
     ]
 
     base_children =
-      case Brainless.Rag.Embedding.provider() do
+      case Brainless.Rag.Embedding.get_provider() do
         :local ->
+          model = Brainless.Rag.Embedding.get_model()
+
           base_children ++
             [
               {Nx.Serving,
                name: Brainless.Rag.Embedding.Provider.Local,
                batch_timeout: 50,
-               serving: Brainless.Rag.Embedding.Provider.Local.serving()}
+               serving: Brainless.Rag.Embedding.Provider.Local.serving(model: model)}
             ]
 
-        _ ->
+        _other ->
           base_children
       end
 
     base_children =
-      case Brainless.Rag.Generation.provider() do
+      case Brainless.Rag.Prediction.get_provider() do
         :local ->
+          model = Brainless.Rag.Prediction.get_model()
+
           base_children ++
             [
               {Nx.Serving,
-               name: Brainless.Rag.Generation.Provider.Local,
+               name: Brainless.Rag.Prediction.Provider.Local,
                batch_timeout: 50,
-               serving: Brainless.Rag.Generation.Provider.Local.serving()}
+               serving: Brainless.Rag.Prediction.Provider.Local.serving(model: model)}
             ]
 
-        _ ->
+        _other ->
           base_children
       end
 
