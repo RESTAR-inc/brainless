@@ -8,7 +8,7 @@ defmodule Brainless.Rag.Embedding.Provider.Local do
 
   @impl true
   def to_vector(input, _opts \\ []) do
-    case Req.post(get_url(:one), json: %{content: input, meta: %{}}) do
+    case Req.post(get_url(:one), headers: get_headers(), json: %{content: input, meta: %{}}) do
       {:ok, %Req.Response{body: body}} ->
         {:ok, map_response_item(body)}
 
@@ -23,7 +23,7 @@ defmodule Brainless.Rag.Embedding.Provider.Local do
 
     documents = Enum.map(inputs, &%{content: &1, meta: %{}})
 
-    case Req.post(get_url(:many), json: documents) do
+    case Req.post(get_url(:many), headers: get_headers(), json: documents) do
       {:ok, %Req.Response{body: body}} ->
         {:ok, Enum.map(body, &map_response_item/1)}
 
@@ -39,5 +39,13 @@ defmodule Brainless.Rag.Embedding.Provider.Local do
 
   defp get_service_url do
     Keyword.fetch!(Application.fetch_env!(:brainless, Brainless.Rag.Embedding), :service_url)
+  end
+
+  defp get_api_key do
+    Keyword.fetch!(Application.fetch_env!(:brainless, Brainless.Rag.Embedding), :api_key)
+  end
+
+  defp get_headers do
+    ["x-api-key": get_api_key()]
   end
 end
