@@ -21,7 +21,7 @@ defmodule Mix.Tasks.BuildIndex do
   defp chunk_size do
     case Embedding.get_provider() do
       :gemini -> 100
-      :local -> 50
+      :local -> 10
     end
   end
 

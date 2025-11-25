@@ -1,52 +1,41 @@
 defmodule Brainless.Rag.Embedding.Provider.Local do
   @moduledoc """
-  List of compatible models with 768 dimensions
-    - sentence-transformers/gtr-t5-base (~220 MB, english only)
-    - sentence-transformers/LaBSE (~1.9 GB, multilang)
-    - sentence-transformers/distiluse-base-multilingual-cased-v2 (~540 MB, multilang)
-    - sentence-transformers/paraphrase-multilingual-mpnet-base-v2 (~1.1 GB, multilang)
-
+  TODO
   """
+
   use Brainless.Rag.Embedding.Provider
   require Logger
 
-  @spec serving(opts :: keyword()) :: Nx.Serving.t()
-  def serving(opts) do
-    model_repo = {:hf, Keyword.get(opts, :model)}
-
-    {:ok, model_info} = Bumblebee.load_model(model_repo)
-    {:ok, tokenizer} = Bumblebee.load_tokenizer(model_repo)
-
-    Logger.info("Starting Bumblebee embedding...")
-
-    Bumblebee.Text.text_embedding(model_info, tokenizer,
-      embedding_processor: :l2_norm,
-      defn_options: [compiler: EXLA],
-      output_attribute: :hidden_state,
-      output_pool: :mean_pooling
-    )
-  end
+  @service_endpoint "http://localhost:8080"
 
   @impl true
   def to_vector(input, _opts \\ []) do
-    case Nx.Serving.batched_run(__MODULE__, input) do
-      %{embedding: embedding} ->
-        {:ok, embedding |> Nx.to_list()}
+    case Req.post(get_url(:one), json: %{content: input}) do
+      {:ok, %Req.Response{body: body}} ->
+        {:ok, map_response_item(body)}
 
-      _ ->
-        {:error, "error"}
+      {:error, _reason} ->
+        {:error, "Unable to create a vector"}
     end
   end
 
   @impl true
   def to_vector_list(inputs, _opts \\ []) do
-    case Nx.Serving.batched_run(__MODULE__, inputs) do
-      values when is_list(values) ->
-        embeddings = Enum.map(values, fn %{embedding: embedding} -> Nx.to_list(embedding) end)
-        {:ok, embeddings}
+    # Req.get!("https://api.github.com/repos/wojtekmach/req").body["description"]
 
-      _ ->
-        {:error, "error"}
+    documents = Enum.map(inputs, &%{content: &1})
+
+    case Req.post(get_url(:many), json: documents) do
+      {:ok, %Req.Response{body: body}} ->
+        {:ok, Enum.map(body, &map_response_item/1)}
+
+      {:error, _reason} ->
+        {:error, "Unable to create a vector list"}
     end
   end
+
+  defp map_response_item(%{"content" => content}) when is_list(content), do: content
+
+  defp get_url(:many), do: "#{@service_endpoint}/api/embeddings/many"
+  defp get_url(:one), do: "#{@service_endpoint}/api/embeddings/one"
 end
