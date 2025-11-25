@@ -20,7 +20,7 @@ if System.get_env("PHX_SERVER") do
   config :brainless, BrainlessWeb.Endpoint, server: true
 end
 
-config :brainless, Brainless.Rag, hf_token: System.get_env("HF_TOKEN")
+config :brainless, Brainless.Rag.Embedding, service_url: System.get_env("EMBEDDING_SERVICE_URL")
 
 if config_env() == :prod do
   database_url =
