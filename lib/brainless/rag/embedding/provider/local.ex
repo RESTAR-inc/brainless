@@ -32,7 +32,7 @@ defmodule Brainless.Rag.Embedding.Provider.Local do
     end
   end
 
-  defp map_response_item(%{"content" => content}) when is_list(content), do: content
+  defp map_response_item(%{"embedding" => embedding}) when is_list(embedding), do: embedding
 
   defp get_url(:many), do: "#{get_service_url()}/api/embeddings/many"
   defp get_url(:one), do: "#{get_service_url()}/api/embeddings/one"
