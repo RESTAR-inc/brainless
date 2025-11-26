@@ -8,19 +8,12 @@
 import Config
 
 config :brainless, Brainless.Rag.Embedding,
-  provider: :gemini,
+  provider: :local,
   dimensions: 768,
-  # Hugging Face compatible models
-  # - sentence-transformers/gtr-t5-base (~220 MB, english only)
-  # - sentence-transformers/distiluse-base-multilingual-cased-v2 (~540 MB, multilang)
-  # - sentence-transformers/paraphrase-multilingual-mpnet-base-v2 (~1.1 GB, multilang)
-  # - sentence-transformers/LaBSE (~1.9 GB, multilang)
-  model: "google:gemini-embedding-001"
+  gemini_model: "google:gemini-embedding-001"
 
 config :brainless, Brainless.Rag.Prediction,
   provider: :gemini,
-  # Hugging Face compatible models
-  # - mistralai/Mistral-7B-Instruct-v0.2
   model: "google:gemini-2.5-flash"
 
 config :brainless,
@@ -46,8 +39,6 @@ config :brainless, BrainlessWeb.Endpoint,
 # For production it's recommended to configure a different adapter
 # at the `config/runtime.exs`.
 config :brainless, Brainless.Mailer, adapter: Swoosh.Adapters.Local
-
-config :brainless, Brainless.Repo, types: Brainless.PostgrexTypes
 
 # Configure esbuild (the version is required)
 config :esbuild,

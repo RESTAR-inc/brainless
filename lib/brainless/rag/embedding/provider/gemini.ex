@@ -4,19 +4,40 @@ defmodule Brainless.Rag.Embedding.Provider.Gemini do
   """
   use Brainless.Rag.Embedding.Provider
 
-  @impl true
-  def to_vector(input, opts) do
-    dimensions = Keyword.get(opts, :dimensions)
-    model = Keyword.get(opts, :model)
+  alias Brainless.Rag.Embedding.EmbedData
+  alias Brainless.Rag.Embedding.EmbedDocument
 
-    ReqLLM.embed(model, input, dimensions: dimensions)
+  @impl true
+  def str_to_vector(input, opts) do
+    dimensions = Keyword.get(opts, :dimensions)
+
+    # TODO: update [String.t()] -> [EmbedData.t()]
+    ReqLLM.embed(get_model(), input, dimensions: dimensions)
   end
 
   @impl true
-  def to_vector_list(inputs, opts) do
+  def docs_to_index_list(documents, opts) do
     dimensions = Keyword.get(opts, :dimensions)
-    model = Keyword.get(opts, :model)
 
-    ReqLLM.embed(model, inputs, dimensions: dimensions)
+    texts = Enum.map(documents, & &1.content)
+
+    case ReqLLM.embed(get_model(), texts, dimensions: dimensions) do
+      {:ok, embeddings} ->
+        result =
+          documents
+          |> Enum.zip(embeddings)
+          |> Enum.map(fn {%EmbedDocument{meta: meta}, embedding} ->
+            %EmbedData{meta: meta, embedding: embedding}
+          end)
+
+        {:ok, result}
+
+      {:error, _reason} ->
+        {:error, "Unable to create a vector list"}
+    end
+  end
+
+  def get_model do
+    Keyword.fetch!(Application.fetch_env!(:brainless, Brainless.Rag.Embedding), :gemini_model)
   end
 end

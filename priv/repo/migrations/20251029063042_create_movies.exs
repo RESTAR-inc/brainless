@@ -30,12 +30,8 @@ defmodule Brainless.Repo.Migrations.CreateMovies do
 
       add :director_id, references(:persons, on_delete: :nothing), null: true
 
-      add :embedding, :vector, size: 768
-
       timestamps(type: :utc_datetime)
     end
-
-    create index("movies", ["embedding vector_l2_ops"], using: :hnsw)
 
     create table(:movies_genres) do
       add :movie_id, references(:movies, on_delete: :delete_all)

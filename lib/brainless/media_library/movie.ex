@@ -14,7 +14,6 @@ defmodule Brainless.MediaLibrary.Movie do
     field :meta_score, :integer
     field :gross, :integer
     field :number_of_votes, :integer
-    field :embedding, Pgvector.Ecto.Vector
 
     belongs_to :director, Brainless.MediaLibrary.Person
 
@@ -36,7 +35,6 @@ defmodule Brainless.MediaLibrary.Movie do
       :meta_score,
       :gross,
       :number_of_votes,
-      :embedding,
       :director_id
     ])
     |> validate_required([
@@ -44,40 +42,5 @@ defmodule Brainless.MediaLibrary.Movie do
       :description,
       :director_id
     ])
-  end
-
-  defp format_release_year(movie) do
-    case movie.release_date do
-      nil -> "unknown"
-      date -> "#{date.year}"
-    end
-  end
-
-  def format_genres(movie) do
-    Enum.map_join(movie.genres, ", ", & &1.name)
-  end
-
-  def format_cast(movie) do
-    Enum.map_join(movie.cast, ", ", & &1.name)
-  end
-
-  def format_for_embedding(%__MODULE__{} = movie) do
-    """
-    # #{movie.title} (#{format_release_year(movie)})
-
-    Genre: #{format_genres(movie)}
-
-    ## Synopsis
-
-    #{movie.description}
-
-    ## Details
-      - Directed By: #{movie.director.name}
-      - Cast: #{format_cast(movie)}
-
-    ## Ratings
-      - IMDB: #{movie.imdb_rating}
-      - Meta Score: #{movie.meta_score}
-    """
   end
 end

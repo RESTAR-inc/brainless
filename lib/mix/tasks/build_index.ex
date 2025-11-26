@@ -7,21 +7,35 @@ defmodule Mix.Tasks.BuildIndex do
 
   require Logger
 
-  alias Brainless.MediaLibrary
   alias Brainless.MediaLibrary.Movie
   alias Brainless.Query
+  alias Brainless.Rag.Document.MediaDocument
   alias Brainless.Rag.Embedding
+  alias Brainless.Rag.Embedding.EmbedData
+  alias Brainless.Rag.Embedding.Client
 
   @requirements ["app.start", "app.config"]
 
   def run(_) do
-    update_all_movies()
+    index_name = MediaDocument.index_name()
+    dimensions = Embedding.get_dimensions()
+    mappings = MediaDocument.mappings()
+
+    Client.delete_index(index_name)
+
+    case Client.create_index(index_name, dimensions, mappings) do
+      :ok ->
+        update_all_movies()
+
+      {:error, _reason} ->
+        raise "Unable to create index"
+    end
   end
 
   defp chunk_size do
     case Embedding.get_provider() do
       :gemini -> 100
-      :local -> 100
+      :local -> 50
     end
   end
 
@@ -36,23 +50,20 @@ defmodule Mix.Tasks.BuildIndex do
   end
 
   defp update_movies(movies) do
-    texts = Enum.map(movies, &Movie.format_for_embedding/1)
-    {:ok, embeddings} = Embedding.to_vector_list(texts)
+    documents = Enum.map(movies, &MediaDocument.document/1)
+    index_name = MediaDocument.index_name()
 
-    if length(embeddings) != length(movies) do
-      raise "embeddings size != items size"
-    end
+    {:ok, embeddings} = Embedding.docs_to_index_list(documents)
 
-    Enum.with_index(movies)
-    |> Enum.map(fn {entity, idx} ->
-      embedding = Enum.at(embeddings, idx)
+    Enum.each(embeddings, fn %EmbedData{} = embed_data ->
+      id = MediaDocument.get_id(embed_data)
 
-      case MediaLibrary.update_movie(entity, %{embedding: embedding}) do
-        {:ok, updated_entity} ->
-          Logger.info("Movie [#{updated_entity.id}] #{updated_entity.title}")
+      case Client.insert_index(index_name, id, embed_data) do
+        :ok ->
+          :ok
 
-        {:error, _changeset} ->
-          Logger.error("Movie [#{entity.id}] #{entity.title}")
+        {:error, error} ->
+          raise error
       end
     end)
   end

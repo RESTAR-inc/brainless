@@ -22,7 +22,8 @@ end
 
 config :brainless, Brainless.Rag.Embedding,
   service_url: System.get_env("EMBEDDING_SERVICE_URL"),
-  api_key: System.get_env("EMBEDDING_SERVICE_API_KEY")
+  api_key: System.get_env("EMBEDDING_SERVICE_API_KEY"),
+  elasticsearch_url: System.get_env("ELASTICSEARCH_URL")
 
 if config_env() == :prod do
   database_url =

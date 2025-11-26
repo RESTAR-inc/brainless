@@ -1,13 +1,13 @@
 defmodule Brainless.Rag.Embedding.Provider.Local do
   @moduledoc """
-  TODO
+  Local embeddings
   """
-
   use Brainless.Rag.Embedding.Provider
-  require Logger
+
+  alias Brainless.Rag.Embedding.EmbedData
 
   @impl true
-  def to_vector(input, _opts \\ []) do
+  def str_to_vector(input, _opts \\ []) do
     case Req.post(get_url(:one), headers: get_headers(), json: %{content: input, meta: %{}}) do
       {:ok, %Req.Response{body: body}} ->
         {:ok, map_response_item(body)}
@@ -18,12 +18,10 @@ defmodule Brainless.Rag.Embedding.Provider.Local do
   end
 
   @impl true
-  def to_vector_list(inputs, _opts \\ []) do
-    # Req.get!("https://api.github.com/repos/wojtekmach/req").body["description"]
+  def docs_to_index_list(documents, _opts \\ []) do
+    json = Enum.map(documents, &%{meta: &1.meta, content: &1.content})
 
-    documents = Enum.map(inputs, &%{content: &1, meta: %{}})
-
-    case Req.post(get_url(:many), headers: get_headers(), json: documents) do
+    case Req.post(get_url(:many), headers: get_headers(), json: json) do
       {:ok, %Req.Response{body: body}} ->
         {:ok, Enum.map(body, &map_response_item/1)}
 
@@ -32,7 +30,9 @@ defmodule Brainless.Rag.Embedding.Provider.Local do
     end
   end
 
-  defp map_response_item(%{"embedding" => embedding}) when is_list(embedding), do: embedding
+  defp map_response_item(%{"embedding" => embedding, "meta" => meta}) do
+    %EmbedData{meta: meta, embedding: embedding}
+  end
 
   defp get_url(:many), do: "#{get_service_url()}/api/embeddings/many"
   defp get_url(:one), do: "#{get_service_url()}/api/embeddings/one"

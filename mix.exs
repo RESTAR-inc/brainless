@@ -68,8 +68,8 @@ defmodule Brainless.MixProject do
       {:bandit, "~> 1.5"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:nimble_csv, "~> 1.1"},
-      {:pgvector, "~> 0.3.0"},
-      {:req_llm, "~> 1.0.0"}
+      {:req_llm, "~> 1.0.0"},
+      {:httpoison, "~> 2.0"}
     ]
   end
 
