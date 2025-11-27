@@ -45,7 +45,7 @@ defmodule Brainless.Rag.Embedding.Client do
   def process_request_url(url) do
     :brainless
     |> Application.fetch_env!(Brainless.Rag.Embedding)
-    |> Keyword.fetch!(:elasticsearch_url)
+    |> Keyword.fetch!(:es_url)
     |> URI.merge(url)
     |> URI.to_string()
   end
