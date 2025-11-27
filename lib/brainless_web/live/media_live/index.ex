@@ -1,8 +1,10 @@
-defmodule BrainlessWeb.MovieLive.Index do
+defmodule BrainlessWeb.MediaLive.Index do
   use BrainlessWeb, :live_view
 
-  alias Brainless.MediaLibrary
-  alias Brainless.MediaLibrary.Movie
+  import BrainlessWeb.Media.MovieComponent
+
+  # alias Brainless.MediaLibrary
+  # alias Brainless.MediaLibrary.Movie
   alias Brainless.Rag
   alias Brainless.Rag.Document.MediaDocument
 
@@ -10,34 +12,43 @@ defmodule BrainlessWeb.MovieLive.Index do
   def mount(_params, _session, socket) do
     {:ok,
      socket
-     |> assign(:page_title, "Listing Movies")
-     |> assign(:ai_response, nil)
-     |> stream(:movies, [])}
+     |> assign(:page_title, "Listing Media")
+     |> assign(:ai_response, "")
+     |> assign(:media_list, [])}
   end
 
   @impl true
-  def handle_event("delete", %{"id" => id}, socket) do
-    movie = MediaLibrary.get_movie!(id)
-    {:ok, _} = MediaLibrary.delete_movie(movie)
+  def handle_event("delete", %{"id" => _id}, socket) do
+    # movie = MediaLibrary.get_movie!(id)
+    # {:ok, _} = MediaLibrary.delete_movie(movie)
 
-    {:noreply, stream_delete(socket, :movies, movie)}
+    # {:noreply, stream_delete(socket, :movies, movie)}
+    {:noreply, socket}
   end
 
   @impl true
   def handle_event("search", %{"query" => query}, socket) do
     query = String.trim(query)
+    search(socket, query)
+  end
 
-    if String.length(query) == 0 do
-      {:noreply, socket |> stream(:movies, [], reset: true)}
-    else
-      {:ok, media, ai_response} = Rag.search(MediaDocument.index_name(), query)
+  defp search(socket, "") do
+    {:noreply, socket |> assign(:media_list, [])}
+  end
 
-      dbg(media)
+  defp search(socket, query) do
+    case Rag.search(MediaDocument.index_name(), query) do
+      {:ok, media, ai_response} ->
+        {:noreply,
+         socket
+         |> assign(:media_list, media)
+         |> assign(:ai_response, ai_response)}
 
-      {:noreply,
-       socket
-       #  |> stream(:movies, movies, reset: true)
-       |> assign(:ai_response, ai_response)}
+      {:error, _} ->
+        {:noreply,
+         socket
+         |> assign(:media_list, [])
+         |> assign(:ai_response, "")}
     end
   end
 
@@ -46,7 +57,7 @@ defmodule BrainlessWeb.MovieLive.Index do
     ~H"""
     <Layouts.app flash={@flash}>
       <.header>
-        Listing Movies
+        Listing Media
         <:actions>
           <.button variant="primary" navigate={~p"/movies/new"}>
             <.icon name="hero-plus" /> New Movie
@@ -59,11 +70,18 @@ defmodule BrainlessWeb.MovieLive.Index do
         <.button phx-disable-with="..." variant="primary">Search</.button>
       </form>
 
-      <div :if={@ai_response != nil} class="whitespace-pre-wrap p-4 w-full">
+      <div>Found: {length(@media_list)}</div>
+
+      <div :if={@ai_response != ""} class="whitespace-pre-wrap p-4 w-full">
         {@ai_response}
       </div>
+      <ul class="flex flex-col gap-4">
+        <li :for={{media_type, media} <- @media_list}>
+          <.movie :if={media_type == "movie"} movie={media} />
+        </li>
+      </ul>
 
-      <.table
+      <%!-- <.table
         id="movies"
         rows={@streams.movies}
         row_click={fn {_id, movie} -> JS.navigate(~p"/movies/#{movie}") end}
@@ -100,7 +118,7 @@ defmodule BrainlessWeb.MovieLive.Index do
             Delete
           </.link>
         </:action>
-      </.table>
+      </.table> --%>
     </Layouts.app>
     """
   end

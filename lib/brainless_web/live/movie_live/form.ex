@@ -109,6 +109,6 @@ defmodule BrainlessWeb.MovieLive.Form do
     end
   end
 
-  defp return_path("index", _movie), do: ~p"/movies"
+  defp return_path("index", _movie), do: ~p"/media"
   defp return_path("show", movie), do: ~p"/movies/#{movie}"
 end

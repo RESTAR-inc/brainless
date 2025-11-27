@@ -10,7 +10,7 @@ defmodule Brainless.Rag do
   alias Brainless.Rag.Prediction
 
   @spec search(String.t(), String.t(), [keyword()]) ::
-          {:error, term()} | {:ok, [{String.t(), [term()]}]}
+          {:error, term()} | {:ok, [{[term()], String.t()}]}
   def search(index_name, query, opts \\ []) when is_binary(query) do
     with {:ok, vector} <- Embedding.str_to_vector(query),
          {:ok, hits} <- Client.search(index_name, vector, opts),
@@ -27,6 +27,7 @@ defmodule Brainless.Rag do
     hits
     |> Enum.reduce(%{}, &compose_results/2)
     |> Enum.map(&retrieve_results/1)
+    |> List.flatten()
   end
 
   defp compose_results({%{"id" => id, "type" => type}, _}, acc) do

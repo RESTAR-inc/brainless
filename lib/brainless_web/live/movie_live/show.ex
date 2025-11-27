@@ -2,7 +2,6 @@ defmodule BrainlessWeb.MovieLive.Show do
   use BrainlessWeb, :live_view
 
   alias Brainless.MediaLibrary
-  alias Brainless.MediaLibrary.Movie
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -22,7 +21,7 @@ defmodule BrainlessWeb.MovieLive.Show do
         <h1>{@movie.title}</h1>
         <:subtitle>{@movie.release_date}</:subtitle>
         <:actions>
-          <.button navigate={~p"/movies"}>
+          <.button navigate={~p"/media"}>
             <.icon name="hero-arrow-left" />
           </.button>
           <.button variant="primary" navigate={~p"/movies/#{@movie}/edit?return_to=show"}>
@@ -34,11 +33,13 @@ defmodule BrainlessWeb.MovieLive.Show do
       <img src={@movie.poster_url} width="200" />
       <.list>
         <:item title="Genres">
-          {Movie.format_genres(@movie)}
+          {Enum.map_join(@movie.genres, ", ", & &1.name)}
         </:item>
         <:item title="Description">{@movie.description}</:item>
         <:item title="Director">{@movie.director.name}</:item>
-        <:item title="Cast">{Movie.format_cast(@movie)}</:item>
+        <:item title="Cast">
+          {Enum.map_join(@movie.cast, ", ", & &1.name)}
+        </:item>
         <:item title="Release date">{@movie.release_date}</:item>
         <:item title="Imdb rating">{@movie.imdb_rating}</:item>
         <:item title="Meta score">{@movie.meta_score}</:item>
