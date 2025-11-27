@@ -9,7 +9,7 @@ import Config
 
 config :brainless, Brainless.Rag.Embedding,
   provider: :local,
-  dimensions: 768,
+  dimensions: 256,
   gemini_model: "google:gemini-embedding-001"
 
 config :brainless, Brainless.Rag.Prediction,

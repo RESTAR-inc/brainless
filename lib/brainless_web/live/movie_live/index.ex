@@ -4,6 +4,7 @@ defmodule BrainlessWeb.MovieLive.Index do
   alias Brainless.MediaLibrary
   alias Brainless.MediaLibrary.Movie
   alias Brainless.Rag
+  alias Brainless.Rag.Document.MediaDocument
 
   @impl true
   def mount(_params, _session, socket) do
@@ -29,11 +30,13 @@ defmodule BrainlessWeb.MovieLive.Index do
     if String.length(query) == 0 do
       {:noreply, socket |> stream(:movies, [], reset: true)}
     else
-      {:ok, movies, ai_response} = Rag.predict(query)
+      {:ok, media, ai_response} = Rag.search(MediaDocument.index_name(), query)
+
+      dbg(media)
 
       {:noreply,
        socket
-       |> stream(:movies, movies, reset: true)
+       #  |> stream(:movies, movies, reset: true)
        |> assign(:ai_response, ai_response)}
     end
   end

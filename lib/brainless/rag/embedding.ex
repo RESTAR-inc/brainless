@@ -9,36 +9,42 @@ defmodule Brainless.Rag.Embedding do
 
   @spec str_to_vector(input :: String.t()) :: {:error, term()} | {:ok, [float()]}
   def str_to_vector(input) do
-    case get_provider() do
+    case provider() do
       :gemini ->
         Gemini.str_to_vector(input,
-          dimensions: get_dimensions()
+          model: option(:model),
+          dimensions: dimensions()
         )
 
       :local ->
-        Local.str_to_vector(input)
+        Local.str_to_vector(input,
+          dimensions: dimensions(),
+          api_key: option(:api_key),
+          service_url: option(:service_url)
+        )
     end
   end
 
   @spec docs_to_index_list(documents :: [EmbedDocument.t()]) ::
           {:error, map()} | {:ok, [EmbedData.t()]}
   def docs_to_index_list(documents) do
-    case get_provider() do
+    case provider() do
       :gemini ->
         Gemini.docs_to_index_list(documents,
-          dimensions: get_dimensions()
+          model: option(:model),
+          dimensions: dimensions()
         )
 
       :local ->
-        Local.docs_to_index_list(documents)
+        Local.docs_to_index_list(documents,
+          dimensions: dimensions(),
+          api_key: option(:api_key),
+          service_url: option(:service_url)
+        )
     end
   end
 
-  def get_provider do
-    Keyword.fetch!(Application.fetch_env!(:brainless, __MODULE__), :provider)
-  end
-
-  def get_dimensions do
-    Keyword.fetch!(Application.fetch_env!(:brainless, __MODULE__), :dimensions)
-  end
+  def provider, do: option(:provider)
+  def dimensions, do: option(:dimensions)
+  defp option(key), do: :brainless |> Application.fetch_env!(__MODULE__) |> Keyword.fetch!(key)
 end

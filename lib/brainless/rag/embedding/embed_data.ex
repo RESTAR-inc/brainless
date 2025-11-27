@@ -6,7 +6,7 @@ defmodule Brainless.Rag.Embedding.EmbedData do
 
   @type t :: %__MODULE__{
           meta: map(),
-          embedding: list(float())
+          embedding: [float()]
         }
   @enforce_keys [:meta, :embedding]
   defstruct [:meta, :embedding]

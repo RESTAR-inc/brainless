@@ -15,8 +15,17 @@ defmodule Brainless.Rag.Embedding.Client do
 
   alias Brainless.Rag.Embedding.EmbedData
 
+  @type search_options ::
+          {:k, pos_integer()}
+          | {:similarity, float()}
+          | {:num_candidates, pos_integer()}
+          | {:filter, map()}
+
   @similarity "cosine"
   @default_timeout to_timeout(second: 30)
+  @search_k 20
+  @search_similarity 0.5
+  @search_num_candidates 50
 
   @impl true
   def process_request_options(options) do
@@ -96,12 +105,49 @@ defmodule Brainless.Rag.Embedding.Client do
   def insert_index(index_name, id, %EmbedData{meta: meta, embedding: embedding}) do
     payload = %{meta: meta, embedding: embedding}
 
-    case put!("/#{index_name}/_doc/#{id}/", payload) do
+    case put!("#{index_name}/_doc/#{id}/", payload) do
       %{body: %{"error" => error}} ->
         {:error, error}
 
       _ ->
         :ok
+    end
+  end
+
+  defp apply_filter(base_params, filter) when is_map(filter) do
+    Map.put_new(base_params, :filter, filter)
+  end
+
+  defp apply_filter(base_params, nil), do: base_params
+
+  defp prepare_search_params(vector, opts) do
+    filter = Keyword.get(opts, :filter)
+
+    %{
+      query_vector: vector,
+      field: "embedding",
+      similarity: Keyword.get(opts, :similarity, @search_similarity),
+      k: Keyword.get(opts, :k, @search_k),
+      num_candidates: Keyword.get(opts, :num_candidates, @search_num_candidates)
+    }
+    |> apply_filter(filter)
+  end
+
+  defp extract_search_item(%{"_source" => %{"meta" => meta}, "_score" => score}),
+    do: {meta, score}
+
+  @spec search(String.t(), [float()], [search_options()]) ::
+          {:error, term()} | {:ok, [{map(), float()}]}
+  def search(index_name, vector, opts \\ []) do
+    url = "#{index_name}/_search"
+    params = %{knn: prepare_search_params(vector, opts)}
+
+    case post!(url, params) do
+      %{status_code: 200, body: %{"hits" => %{"hits" => hits}}} ->
+        {:ok, Enum.map(hits, &extract_search_item/1)}
+
+      _ ->
+        {:error, "Unknown error"}
     end
   end
 end

@@ -18,24 +18,17 @@ defmodule Mix.Tasks.BuildIndex do
 
   def run(_) do
     index_name = MediaDocument.index_name()
-    dimensions = Embedding.get_dimensions()
+    dimensions = Embedding.dimensions()
     mappings = MediaDocument.mappings()
 
-    Client.delete_index(index_name)
-
-    case Client.create_index(index_name, dimensions, mappings) do
-      :ok ->
-        update_all_movies()
-
-      {:error, _reason} ->
-        raise "Unable to create index"
-    end
+    Client.create_index(index_name, dimensions, mappings)
+    update_all_movies()
   end
 
   defp chunk_size do
-    case Embedding.get_provider() do
+    case Embedding.provider() do
       :gemini -> 100
-      :local -> 50
+      :local -> 20
     end
   end
 

@@ -56,6 +56,8 @@ defmodule Brainless.Rag.Document.MediaDocument do
     """
   end
 
+  def format(_), do: ""
+
   defp format_release_year(%Movie{release_date: release_date}) do
     case release_date do
       nil -> "unknown"
