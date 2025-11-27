@@ -1,4 +1,7 @@
 defmodule Brainless.Rag.Document.MediaDocument do
+  @moduledoc """
+  Media Document formatter, etc.
+  """
   use Brainless.Rag.Document
 
   alias Brainless.MediaLibrary.Movie

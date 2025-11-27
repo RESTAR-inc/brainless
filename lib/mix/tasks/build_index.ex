@@ -11,8 +11,8 @@ defmodule Mix.Tasks.BuildIndex do
   alias Brainless.Query
   alias Brainless.Rag.Document.MediaDocument
   alias Brainless.Rag.Embedding
-  alias Brainless.Rag.Embedding.EmbedData
   alias Brainless.Rag.Embedding.Client
+  alias Brainless.Rag.Embedding.EmbedData
 
   @requirements ["app.start", "app.config"]
 

@@ -42,8 +42,7 @@ defmodule Brainless.Rag.Embedding.Provider.Local do
       {:ok, %Req.Response{body: body}} ->
         {:ok, Enum.map(body, &create_embed_data/1)}
 
-      {:error, reason} ->
-        dbg(reason)
+      {:error, _reason} ->
         {:error, "Unable to create a vector list"}
     end
   end

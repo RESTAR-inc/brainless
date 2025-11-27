@@ -1,4 +1,7 @@
 defmodule Brainless.Rag.Document do
+  @moduledoc """
+  Embed Document
+  """
   alias Brainless.Rag.Embedding.EmbedDocument
 
   @callback format(struct()) :: String.t()

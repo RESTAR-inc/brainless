@@ -1,5 +1,8 @@
 defmodule BrainlessWeb.Media.MovieComponent do
-  use Phoenix.Component
+  @moduledoc """
+  Movie components
+  """
+  use BrainlessWeb, :html
 
   alias Brainless.MediaLibrary.Movie
 
@@ -12,7 +15,11 @@ defmodule BrainlessWeb.Media.MovieComponent do
         <img src={@movie.poster_url} width="50" />
       </div>
       <div class="flex flex-col gap-2">
-        <h2 class="text-xl">{@movie.title}</h2>
+        <h2 class="text-xl">
+          <.link navigate={~p"/movies/#{@movie}"}>
+            {@movie.title}
+          </.link>
+        </h2>
         <div>
           Genres: <span class="text-sm">{Enum.map_join(@movie.genres, ", ", & &1.name)}</span>
         </div>

@@ -12,7 +12,7 @@ defmodule Brainless.Rag.Embedding do
     case provider() do
       :gemini ->
         Gemini.str_to_vector(input,
-          model: option(:model),
+          model: option(:gemini_model),
           dimensions: dimensions()
         )
 
@@ -31,7 +31,7 @@ defmodule Brainless.Rag.Embedding do
     case provider() do
       :gemini ->
         Gemini.docs_to_index_list(documents,
-          model: option(:model),
+          model: option(:gemini_model),
           dimensions: dimensions()
         )
 
