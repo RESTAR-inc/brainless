@@ -4,11 +4,13 @@ defmodule Brainless.MediaLibrary do
   """
 
   import Ecto.Query, warn: false
-  import Pgvector.Ecto.Query
 
   alias Brainless.Repo
 
   alias Brainless.MediaLibrary.{Genre, Movie, Person}
+
+  @type retrieve_options ::
+          {:preload, [atom()]}
 
   def create_genre(attrs) do
     %Genre{}
@@ -96,22 +98,6 @@ defmodule Brainless.MediaLibrary do
   end
 
   @doc """
-  Deletes a movie.
-
-  ## Examples
-
-      iex> delete_movie(movie)
-      {:ok, %Movie{}}
-
-      iex> delete_movie(movie)
-      {:error, %Ecto.Changeset{}}
-
-  """
-  def delete_movie(%Movie{} = movie) do
-    Repo.delete(movie)
-  end
-
-  @doc """
   Returns an `%Ecto.Changeset{}` for tracking movie changes.
 
   ## Examples
@@ -124,16 +110,11 @@ defmodule Brainless.MediaLibrary do
     Movie.changeset(movie, attrs)
   end
 
-  def retrieve_movies(vector, opts \\ []) when is_list(vector) do
-    query =
-      from movie in Movie,
-        order_by: l2_distance(movie.embedding, ^Pgvector.new(vector)),
-        limit: 10
+  @spec retrieve_movies([integer()], [retrieve_options()]) :: [term()]
+  def retrieve_movies(ids, opts \\ []) do
+    query = from movie in Movie, where: movie.id in ^ids
 
     Enum.reduce(opts, query, fn
-      {:limit, bindings}, query ->
-        from q in exclude(query, :limit), limit: ^bindings
-
       {:preload, bindings}, query ->
         preload(query, ^bindings)
 
@@ -142,4 +123,6 @@ defmodule Brainless.MediaLibrary do
     end)
     |> Repo.all()
   end
+
+  def delete_media(%Movie{} = movie), do: Repo.delete(movie)
 end

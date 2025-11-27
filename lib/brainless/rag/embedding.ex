@@ -2,46 +2,49 @@ defmodule Brainless.Rag.Embedding do
   @moduledoc """
   Root embedding
   """
+  alias Brainless.Rag.Embedding.EmbedData
+  alias Brainless.Rag.Embedding.EmbedDocument
   alias Brainless.Rag.Embedding.Provider.Gemini
   alias Brainless.Rag.Embedding.Provider.Local
 
-  @spec to_vector(input :: String.t()) :: {:error, term()} | {:ok, [float()]}
-  def to_vector(input) do
-    case get_provider() do
+  @spec str_to_vector(input :: String.t()) :: {:error, term()} | {:ok, [float()]}
+  def str_to_vector(input) do
+    case provider() do
       :gemini ->
-        Gemini.to_vector(input,
-          model: get_model(),
-          dimensions: get_dimensions()
+        Gemini.str_to_vector(input,
+          model: option(:gemini_model),
+          dimensions: dimensions()
         )
 
       :local ->
-        Local.to_vector(input)
+        Local.str_to_vector(input,
+          dimensions: dimensions(),
+          api_key: option(:api_key),
+          service_url: option(:service_url)
+        )
     end
   end
 
-  @spec to_vector_list(inputs :: [String.t()]) :: {:error, map()} | {:ok, [[float()]]}
-  def to_vector_list(inputs) do
-    case get_provider() do
+  @spec docs_to_index_list(documents :: [EmbedDocument.t()]) ::
+          {:error, map()} | {:ok, [EmbedData.t()]}
+  def docs_to_index_list(documents) do
+    case provider() do
       :gemini ->
-        Gemini.to_vector_list(inputs,
-          model: get_model(),
-          dimensions: get_dimensions()
+        Gemini.docs_to_index_list(documents,
+          model: option(:gemini_model),
+          dimensions: dimensions()
         )
 
       :local ->
-        Local.to_vector_list(inputs)
+        Local.docs_to_index_list(documents,
+          dimensions: dimensions(),
+          api_key: option(:api_key),
+          service_url: option(:service_url)
+        )
     end
   end
 
-  def get_provider do
-    Keyword.fetch!(Application.fetch_env!(:brainless, __MODULE__), :provider)
-  end
-
-  def get_dimensions do
-    Keyword.fetch!(Application.fetch_env!(:brainless, __MODULE__), :dimensions)
-  end
-
-  def get_model do
-    Keyword.fetch!(Application.fetch_env!(:brainless, __MODULE__), :model)
-  end
+  def provider, do: option(:provider)
+  def dimensions, do: option(:dimensions)
+  defp option(key), do: :brainless |> Application.fetch_env!(__MODULE__) |> Keyword.fetch!(key)
 end

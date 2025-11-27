@@ -1,16 +1,26 @@
 defmodule Brainless.Rag.Embedding.Provider.Local do
   @moduledoc """
-  TODO
+  Local embeddings
   """
-
   use Brainless.Rag.Embedding.Provider
-  require Logger
+
+  alias Brainless.Rag.Embedding.EmbedData
 
   @impl true
-  def to_vector(input, _opts \\ []) do
-    case Req.post(get_url(:one), headers: get_headers(), json: %{content: input, meta: %{}}) do
+  def str_to_vector(input, opts) do
+    dimensions = Keyword.get(opts, :dimensions)
+    headers = Keyword.get(opts, :api_key) |> get_headers()
+    url = Keyword.get(opts, :service_url) |> get_url(:one)
+
+    json = %{
+      document: %{content: input, meta: %{}},
+      dimensions: dimensions
+    }
+
+    case Req.post(url, headers: headers, json: json) do
       {:ok, %Req.Response{body: body}} ->
-        {:ok, map_response_item(body)}
+        data = create_embed_data(body)
+        {:ok, data.embedding}
 
       {:error, _reason} ->
         {:error, "Unable to create a vector"}
@@ -18,34 +28,33 @@ defmodule Brainless.Rag.Embedding.Provider.Local do
   end
 
   @impl true
-  def to_vector_list(inputs, _opts \\ []) do
-    # Req.get!("https://api.github.com/repos/wojtekmach/req").body["description"]
+  def docs_to_index_list(documents, opts) do
+    dimensions = Keyword.get(opts, :dimensions)
+    url = Keyword.get(opts, :service_url) |> get_url(:many)
+    headers = Keyword.get(opts, :api_key) |> get_headers()
 
-    documents = Enum.map(inputs, &%{content: &1, meta: %{}})
+    json = %{
+      documents: Enum.map(documents, &%{meta: &1.meta, content: &1.content}),
+      dimensions: dimensions
+    }
 
-    case Req.post(get_url(:many), headers: get_headers(), json: documents) do
+    case Req.post(url, headers: headers, json: json) do
       {:ok, %Req.Response{body: body}} ->
-        {:ok, Enum.map(body, &map_response_item/1)}
+        {:ok, Enum.map(body, &create_embed_data/1)}
 
       {:error, _reason} ->
         {:error, "Unable to create a vector list"}
     end
   end
 
-  defp map_response_item(%{"embedding" => embedding}) when is_list(embedding), do: embedding
-
-  defp get_url(:many), do: "#{get_service_url()}/api/embeddings/many"
-  defp get_url(:one), do: "#{get_service_url()}/api/embeddings/one"
-
-  defp get_service_url do
-    Keyword.fetch!(Application.fetch_env!(:brainless, Brainless.Rag.Embedding), :service_url)
+  defp create_embed_data(%{"embedding" => embedding, "meta" => meta}) do
+    %EmbedData{meta: meta, embedding: embedding}
   end
 
-  defp get_api_key do
-    Keyword.fetch!(Application.fetch_env!(:brainless, Brainless.Rag.Embedding), :api_key)
-  end
+  defp get_url(service_url, :many), do: "#{service_url}/api/embeddings/many"
+  defp get_url(service_url, :one), do: "#{service_url}/api/embeddings/one"
 
-  defp get_headers do
-    ["x-api-key": get_api_key()]
+  defp get_headers(api_key) do
+    ["x-api-key": api_key]
   end
 end

@@ -19,7 +19,8 @@ defmodule BrainlessWeb.Router do
 
     get "/", PageController, :home
 
-    live "/movies", MovieLive.Index, :index
+    live "/media", MediaLive.Index, :index
+
     live "/movies/new", MovieLive.Form, :new
     live "/movies/:id", MovieLive.Show, :show
     live "/movies/:id/edit", MovieLive.Form, :edit
