@@ -7,7 +7,10 @@ defmodule Brainless.MediaLibrary do
 
   alias Brainless.Repo
 
-  alias Brainless.MediaLibrary.{Genre, Movie, Person}
+  alias Brainless.MediaLibrary.Book
+  alias Brainless.MediaLibrary.Genre
+  alias Brainless.MediaLibrary.Movie
+  alias Brainless.MediaLibrary.Person
 
   @type retrieve_options ::
           {:preload, [atom()]}
@@ -20,6 +23,10 @@ defmodule Brainless.MediaLibrary do
 
   def list_genres do
     Repo.all(Genre)
+  end
+
+  def get_genre_by_name(name) when is_binary(name) do
+    Repo.get_by(Genre, name: name)
   end
 
   def create_person(attrs) do
@@ -118,6 +125,22 @@ defmodule Brainless.MediaLibrary do
   """
   def change_movie(%Movie{} = movie, attrs \\ %{}) do
     Movie.changeset(movie, attrs)
+  end
+
+  def create_book(attrs) do
+    %Book{}
+    |> Book.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def update_book(%Book{} = book, attrs) do
+    book
+    |> Book.changeset(attrs)
+    |> Repo.update()
+  end
+
+  def change_book(%Book{} = book, attrs \\ %{}) do
+    Book.changeset(book, attrs)
   end
 
   @spec retrieve_movies([integer()], [retrieve_options()]) :: [term()]

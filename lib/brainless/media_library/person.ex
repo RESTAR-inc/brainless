@@ -14,6 +14,7 @@ defmodule Brainless.MediaLibrary.Person do
     has_many :movies, Brainless.MediaLibrary.Movie, foreign_key: :director_id
 
     many_to_many :acted_in_movies, Brainless.MediaLibrary.Person, join_through: "movies_cast"
+    many_to_many :wrote_books, Brainless.MediaLibrary.Book, join_through: "books_authors"
 
     timestamps(type: :utc_datetime)
   end
