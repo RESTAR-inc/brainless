@@ -7,10 +7,10 @@ defmodule Brainless.MediaLibrary do
 
   alias Brainless.Repo
 
-  alias Brainless.MediaLibrary.{Genre, Movie, Person}
-
-  @type retrieve_options ::
-          {:preload, [atom()]}
+  alias Brainless.MediaLibrary.Book
+  alias Brainless.MediaLibrary.Genre
+  alias Brainless.MediaLibrary.Movie
+  alias Brainless.MediaLibrary.Person
 
   def create_genre(attrs) do
     %Genre{}
@@ -22,10 +22,24 @@ defmodule Brainless.MediaLibrary do
     Repo.all(Genre)
   end
 
+  def get_genre_by_name(name) when is_binary(name) do
+    Repo.get_by(Genre, name: name)
+  end
+
   def create_person(attrs) do
     %Person{}
     |> Person.changeset(attrs)
     |> Repo.insert()
+  end
+
+  def update_person(%Person{} = person, attrs) do
+    person
+    |> Person.changeset(attrs)
+    |> Repo.update()
+  end
+
+  def get_person_by_name(name) when is_binary(name) do
+    Repo.get_by(Person, name: name)
   end
 
   def list_persons do
@@ -110,18 +124,45 @@ defmodule Brainless.MediaLibrary do
     Movie.changeset(movie, attrs)
   end
 
-  @spec retrieve_movies([integer()], [retrieve_options()]) :: [term()]
-  def retrieve_movies(ids, opts \\ []) do
-    query = from movie in Movie, where: movie.id in ^ids
+  def create_book(attrs) do
+    %Book{}
+    |> Book.changeset(attrs)
+    |> Repo.insert()
+  end
 
-    Enum.reduce(opts, query, fn
-      {:preload, bindings}, query ->
-        preload(query, ^bindings)
+  def update_book(%Book{} = book, attrs) do
+    book
+    |> Book.changeset(attrs)
+    |> Repo.update()
+  end
 
-      _, query ->
-        query
-    end)
+  def change_book(%Book{} = book, attrs \\ %{}) do
+    Book.changeset(book, attrs)
+  end
+
+  @spec retrieve_media(Ecto.Query.t(), [{integer(), float()}], String.t()) ::
+          [{term(), String.t(), float()}]
+  defp retrieve_media(query, ids_with_score, type) do
+    ids = Enum.map(ids_with_score, fn {id, _} -> id end)
+    scores_map = Map.new(ids_with_score)
+
+    query
+    |> where([p], p.id in ^ids)
     |> Repo.all()
+    |> Enum.map(fn entity ->
+      score = Map.get(scores_map, entity.id)
+      {entity, type, score}
+    end)
+  end
+
+  def retrieve({"movie" = type, ids_with_score}) do
+    from(movie in Movie, preload: [:director, :cast, :genres])
+    |> retrieve_media(ids_with_score, type)
+  end
+
+  def retrieve({"book" = type, ids_with_score}) do
+    from(book in Book, preload: [:authors, :genres])
+    |> retrieve_media(ids_with_score, type)
   end
 
   def delete_media(%Movie{} = movie), do: Repo.delete(movie)

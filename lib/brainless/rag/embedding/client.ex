@@ -23,9 +23,9 @@ defmodule Brainless.Rag.Embedding.Client do
 
   @similarity "cosine"
   @default_timeout to_timeout(second: 30)
-  @search_k 20
-  @search_similarity 0.4
-  @search_num_candidates 50
+  @search_k 100
+  @search_similarity 0.5
+  @search_num_candidates 1000
 
   @impl true
   def process_request_options(options) do

@@ -7,6 +7,7 @@ defmodule Mix.Tasks.BuildIndex do
 
   require Logger
 
+  alias Brainless.MediaLibrary.Book
   alias Brainless.MediaLibrary.Movie
   alias Brainless.Query
   alias Brainless.Rag.Document.MediaDocument
@@ -23,6 +24,7 @@ defmodule Mix.Tasks.BuildIndex do
 
     Client.create_index(index_name, dimensions, mappings)
     update_all_movies()
+    update_all_books()
   end
 
   defp chunk_size do
@@ -38,12 +40,21 @@ defmodule Mix.Tasks.BuildIndex do
       preload: [:director, :cast, :genres],
       order_by: [asc: :id]
     )
-    |> Stream.each(&update_movies/1)
+    |> Stream.each(&update_entities/1)
     |> Stream.run()
   end
 
-  defp update_movies(movies) do
-    documents = Enum.map(movies, &MediaDocument.document/1)
+  defp update_all_books do
+    from(book in Book)
+    |> Query.stream_all(chunk_size(),
+      preload: [:genres, :authors]
+    )
+    |> Stream.each(&update_entities/1)
+    |> Stream.run()
+  end
+
+  defp update_entities(entities) do
+    documents = Enum.map(entities, &MediaDocument.document/1)
     index_name = MediaDocument.index_name()
 
     {:ok, embeddings} = Embedding.docs_to_index_list(documents)
