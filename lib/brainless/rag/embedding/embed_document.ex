@@ -5,9 +5,10 @@ defmodule Brainless.Rag.Embedding.EmbedDocument do
   @derive JSON.Encoder
 
   @type t :: %__MODULE__{
+          id: String.t(),
           meta: map(),
           content: String.t()
         }
-  @enforce_keys [:meta, :content]
-  defstruct [:meta, :content]
+  @enforce_keys [:id, :meta, :content]
+  defstruct [:id, :meta, :content]
 end

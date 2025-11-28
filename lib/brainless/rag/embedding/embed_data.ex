@@ -5,9 +5,10 @@ defmodule Brainless.Rag.Embedding.EmbedData do
   @derive JSON.Encoder
 
   @type t :: %__MODULE__{
+          id: String.t(),
           meta: map(),
           embedding: [float()]
         }
-  @enforce_keys [:meta, :embedding]
-  defstruct [:meta, :embedding]
+  @enforce_keys [:id, :meta, :embedding]
+  defstruct [:id, :meta, :embedding]
 end

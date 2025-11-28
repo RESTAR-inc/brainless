@@ -90,7 +90,7 @@ defmodule Brainless.Rag.Embedding.Client do
     end
   end
 
-  @spec create_index(String.t(), integer(), map()) :: any()
+  @spec create_index(String.t(), integer(), map()) :: {:error, term()} | :ok
   def create_index(index_name, dimensions, mappings) do
     case put!(index_name, %{mappings: get_mappings(dimensions, mappings)}) do
       %{body: %{"error" => error}} ->
@@ -101,8 +101,8 @@ defmodule Brainless.Rag.Embedding.Client do
     end
   end
 
-  @spec insert_index(String.t(), String.t(), EmbedData.t()) :: any()
-  def insert_index(index_name, id, %EmbedData{meta: meta, embedding: embedding}) do
+  @spec insert_index(String.t(), EmbedData.t()) :: {:error, term()} | :ok
+  def insert_index(index_name, %EmbedData{id: id, meta: meta, embedding: embedding}) do
     payload = %{meta: meta, embedding: embedding}
 
     case put!("#{index_name}/_doc/#{id}/", payload) do

@@ -8,7 +8,6 @@ defmodule Brainless.Rag.Document do
   @callback mappings() :: map()
   @callback index_name() :: String.t()
   @callback document(struct()) :: EmbedDocument.t()
-  @callback get_id(struct()) :: String.t()
 
   defmacro __using__(_opts) do
     quote do

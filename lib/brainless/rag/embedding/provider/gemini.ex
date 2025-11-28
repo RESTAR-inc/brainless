@@ -26,8 +26,8 @@ defmodule Brainless.Rag.Embedding.Provider.Gemini do
         result =
           documents
           |> Enum.zip(embeddings)
-          |> Enum.map(fn {%EmbedDocument{meta: meta}, embedding} ->
-            %EmbedData{meta: meta, embedding: embedding}
+          |> Enum.map(fn {%EmbedDocument{id: id, meta: meta}, embedding} ->
+            %EmbedData{id: id, meta: meta, embedding: embedding}
           end)
 
         {:ok, result}

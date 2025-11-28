@@ -49,9 +49,7 @@ defmodule Mix.Tasks.BuildIndex do
     {:ok, embeddings} = Embedding.docs_to_index_list(documents)
 
     Enum.each(embeddings, fn %EmbedData{} = embed_data ->
-      id = MediaDocument.get_id(embed_data)
-
-      case Client.insert_index(index_name, id, embed_data) do
+      case Client.insert_index(index_name, embed_data) do
         :ok ->
           :ok
 

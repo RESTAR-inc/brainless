@@ -5,19 +5,15 @@ defmodule Brainless.Rag.Document.MediaDocument do
   use Brainless.Rag.Document
 
   alias Brainless.MediaLibrary.Movie
-  alias Brainless.Rag.Embedding.EmbedData
   alias Brainless.Rag.Embedding.EmbedDocument
 
   @impl true
   def index_name, do: "media"
 
   @impl true
-  def get_id(%EmbedData{meta: %{"id" => id, "type" => "movie"}}), do: "movie-#{id}"
-  def get_id(%EmbedData{meta: %{id: id, type: "movie"}}), do: "movie-#{id}"
-
-  @impl true
   def document(%Movie{} = movie) do
     %EmbedDocument{
+      id: "movie-#{movie.id}",
       content: format(movie),
       meta: %{
         id: movie.id,
