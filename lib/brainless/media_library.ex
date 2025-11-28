@@ -157,5 +157,19 @@ defmodule Brainless.MediaLibrary do
     |> Repo.all()
   end
 
+  @spec retrieve_books([integer()], [retrieve_options()]) :: [term()]
+  def retrieve_books(ids, opts \\ []) do
+    query = from book in Book, where: book.id in ^ids
+
+    Enum.reduce(opts, query, fn
+      {:preload, bindings}, query ->
+        preload(query, ^bindings)
+
+      _, query ->
+        query
+    end)
+    |> Repo.all()
+  end
+
   def delete_media(%Movie{} = movie), do: Repo.delete(movie)
 end

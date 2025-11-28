@@ -66,6 +66,7 @@ defmodule BrainlessWeb.MediaLive.Index do
       <ul class="flex flex-col gap-4">
         <li :for={{media_type, media} <- @media_list}>
           <.movie :if={media_type == "movie"} movie={media} />
+          <div :if={media_type == "book"}>Book {media.title}</div>
         </li>
       </ul>
     </Layouts.app>

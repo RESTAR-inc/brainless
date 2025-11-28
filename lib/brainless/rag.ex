@@ -3,6 +3,7 @@ defmodule Brainless.Rag do
   Main RAG module
   """
   alias Brainless.MediaLibrary
+  alias Brainless.MediaLibrary.Book
   alias Brainless.MediaLibrary.Movie
   alias Brainless.Rag.Document.MediaDocument
   alias Brainless.Rag.Embedding
@@ -43,7 +44,15 @@ defmodule Brainless.Rag do
     |> List.flatten()
   end
 
+  defp retrieve_results({"book" = type, ids}) when is_list(ids) do
+    ids
+    |> MediaLibrary.retrieve_books(preload: [:authors, :genres])
+    |> Enum.map(&{type, &1})
+    |> List.flatten()
+  end
+
   defp format_entity({"movie", %Movie{} = movie}), do: MediaDocument.format(movie)
+  defp format_entity({"book", %Book{} = book}), do: MediaDocument.format(book)
   defp format_entity(_), do: ""
 
   defp format_prompt(items, query) do
