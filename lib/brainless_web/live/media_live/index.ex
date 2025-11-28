@@ -1,7 +1,7 @@
 defmodule BrainlessWeb.MediaLive.Index do
   use BrainlessWeb, :live_view
 
-  import BrainlessWeb.Media.MovieComponent
+  import BrainlessWeb.Media.Components
 
   alias Brainless.Rag
   alias Brainless.Rag.Document.MediaDocument
@@ -11,7 +11,7 @@ defmodule BrainlessWeb.MediaLive.Index do
     {:ok,
      socket
      |> assign(:page_title, "Listing Media")
-     |> assign(:ai_response, "")
+     |> assign(:ai_response, nil)
      |> assign(:media_list, [])}
   end
 
@@ -27,17 +27,17 @@ defmodule BrainlessWeb.MediaLive.Index do
 
   defp search(socket, query) do
     case Rag.search(MediaDocument.index_name(), query) do
-      {:ok, media, ai_response} ->
+      {:ok, media_list, ai_response} ->
         {:noreply,
          socket
-         |> assign(:media_list, media)
+         |> assign(:media_list, media_list)
          |> assign(:ai_response, ai_response)}
 
       {:error, _} ->
         {:noreply,
          socket
          |> assign(:media_list, [])
-         |> assign(:ai_response, "")}
+         |> assign(:ai_response, nil)}
     end
   end
 
@@ -59,16 +59,16 @@ defmodule BrainlessWeb.MediaLive.Index do
         <.button phx-disable-with="..." variant="primary">Search</.button>
       </form>
 
-      <div :if={@ai_response != ""} class="whitespace-pre-wrap p-2 w-full">
+      <div :if={@ai_response != nil} class="whitespace-pre-wrap p-2 w-full">
         {@ai_response}
       </div>
 
-      <ul class="flex flex-col gap-4">
-        <li :for={{media_type, media} <- @media_list}>
-          <.movie :if={media_type == "movie"} movie={media} />
-          <div :if={media_type == "book"}>Book {media.title}</div>
+      <div class="flex flex-col list-none divide-y">
+        <li :for={{media, media_type, score} <- @media_list} class="p-4">
+          <.movie :if={media_type == "movie"} movie={media} score={score} />
+          <.book :if={media_type == "book"} book={media} score={score} />
         </li>
-      </ul>
+      </div>
     </Layouts.app>
     """
   end

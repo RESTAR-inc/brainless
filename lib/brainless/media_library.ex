@@ -12,9 +12,6 @@ defmodule Brainless.MediaLibrary do
   alias Brainless.MediaLibrary.Movie
   alias Brainless.MediaLibrary.Person
 
-  @type retrieve_options ::
-          {:preload, [atom()]}
-
   def create_genre(attrs) do
     %Genre{}
     |> Genre.changeset(attrs)
@@ -143,32 +140,29 @@ defmodule Brainless.MediaLibrary do
     Book.changeset(book, attrs)
   end
 
-  @spec retrieve_movies([integer()], [retrieve_options()]) :: [term()]
-  def retrieve_movies(ids, opts \\ []) do
-    query = from movie in Movie, where: movie.id in ^ids
+  @spec retrieve_media(Ecto.Query.t(), [{integer(), float()}], String.t()) ::
+          [{term(), String.t(), float()}]
+  defp retrieve_media(query, ids_with_score, type) do
+    ids = Enum.map(ids_with_score, fn {id, _} -> id end)
+    scores_map = Map.new(ids_with_score)
 
-    Enum.reduce(opts, query, fn
-      {:preload, bindings}, query ->
-        preload(query, ^bindings)
-
-      _, query ->
-        query
-    end)
+    query
+    |> where([p], p.id in ^ids)
     |> Repo.all()
+    |> Enum.map(fn entity ->
+      score = Map.get(scores_map, entity.id)
+      {entity, type, score}
+    end)
   end
 
-  @spec retrieve_books([integer()], [retrieve_options()]) :: [term()]
-  def retrieve_books(ids, opts \\ []) do
-    query = from book in Book, where: book.id in ^ids
+  def retrieve({"movie" = type, ids_with_score}) do
+    from(movie in Movie, preload: [:director, :cast, :genres])
+    |> retrieve_media(ids_with_score, type)
+  end
 
-    Enum.reduce(opts, query, fn
-      {:preload, bindings}, query ->
-        preload(query, ^bindings)
-
-      _, query ->
-        query
-    end)
-    |> Repo.all()
+  def retrieve({"book" = type, ids_with_score}) do
+    from(book in Book, preload: [:authors, :genres])
+    |> retrieve_media(ids_with_score, type)
   end
 
   def delete_media(%Movie{} = movie), do: Repo.delete(movie)
