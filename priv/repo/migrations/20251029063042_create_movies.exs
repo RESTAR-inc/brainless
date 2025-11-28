@@ -4,6 +4,7 @@ defmodule Brainless.Repo.Migrations.CreateMovies do
   def change do
     create table(:persons) do
       add :name, :string, null: false
+      add :occupations, {:array, :string}, null: false, default: []
 
       timestamps(type: :utc_datetime)
     end

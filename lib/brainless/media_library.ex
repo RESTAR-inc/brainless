@@ -28,6 +28,16 @@ defmodule Brainless.MediaLibrary do
     |> Repo.insert()
   end
 
+  def update_person(%Person{} = person, attrs) do
+    person
+    |> Person.changeset(attrs)
+    |> Repo.update()
+  end
+
+  def get_person_by_name(name) when is_binary(name) do
+    Repo.get_by(Person, name: name)
+  end
+
   def list_persons do
     Repo.all(Person)
   end

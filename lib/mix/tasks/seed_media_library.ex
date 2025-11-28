@@ -10,7 +10,9 @@ defmodule Mix.Tasks.SeedMediaLibrary do
 
   alias Brainless.CsvParser
   alias Brainless.MediaLibrary
-  alias Brainless.MediaLibrary.{Genre, Movie, Person}
+  alias Brainless.MediaLibrary.Genre
+  alias Brainless.MediaLibrary.Movie
+  alias Brainless.MediaLibrary.Person
 
   @requirements ["app.start"]
 
@@ -86,33 +88,6 @@ defmodule Mix.Tasks.SeedMediaLibrary do
     |> Enum.into(%{}, &{&1.name, &1})
   end
 
-  defp seed_persons do
-    @csv_file_path
-    |> File.stream!()
-    |> CsvParser.parse_stream()
-    |> Stream.map(fn row ->
-      movie_row_to_map(row)
-      |> Map.take([:director, :star1, :star2, :star3, :star4])
-      |> Map.values()
-      |> Enum.map(&String.trim(&1))
-    end)
-    |> Enum.to_list()
-    |> List.flatten()
-    |> Enum.uniq()
-    |> Enum.map(fn name ->
-      case MediaLibrary.create_person(%{name: name}) do
-        {:ok, %Person{} = new_person} ->
-          Logger.info("Person:ok #{new_person.id}/#{new_person.name}")
-          new_person
-
-        {:error, _} ->
-          Logger.error("Person:error #{name}")
-          raise "Person Import Error"
-      end
-    end)
-    |> Enum.into(%{}, &{&1.name, &1})
-  end
-
   defp parse_int(input) do
     case Integer.parse(input) do
       {value, _} -> value
@@ -144,7 +119,45 @@ defmodule Mix.Tasks.SeedMediaLibrary do
     end
   end
 
-  defp seed_movies(genres, persons) do
+  defp create_person(name, occupation) do
+    case MediaLibrary.create_person(%{name: name, occupations: [occupation]}) do
+      {:ok, %Person{} = new_person} ->
+        Logger.info("Person:created #{new_person.id}/#{new_person.name}")
+        new_person
+
+      {:error, _} ->
+        raise "Person:create #{name}"
+    end
+  end
+
+  defp update_person(%Person{} = person, occupation) do
+    attrs = %{occupations: [occupation | person.occupations]}
+
+    case MediaLibrary.update_person(person, attrs) do
+      {:ok, %Person{} = updated_person} ->
+        Logger.info("Person:updated #{updated_person.id}/#{updated_person.name}")
+        updated_person
+
+      {:error, _} ->
+        raise "Person:update #{person.name}"
+    end
+  end
+
+  defp get_or_create_person(name, occupation) do
+    case MediaLibrary.get_person_by_name(name) do
+      %Person{} = person ->
+        if occupation in person.occupations do
+          person
+        else
+          update_person(person, occupation)
+        end
+
+      nil ->
+        create_person(name, occupation)
+    end
+  end
+
+  defp seed_movies(genres) do
     File.stream!(@csv_file_path)
     |> CsvParser.parse_stream()
     |> Stream.map(fn row ->
@@ -167,8 +180,12 @@ defmodule Mix.Tasks.SeedMediaLibrary do
           :star4
         ])
 
-      director = Map.get(persons, String.trim(data[:director]))
       genres = prepare_genre(data[:genre]) |> Enum.map(&Map.fetch!(genres, &1))
+
+      director =
+        data[:director]
+        |> String.trim()
+        |> get_or_create_person(:director)
 
       cast =
         data
@@ -176,7 +193,7 @@ defmodule Mix.Tasks.SeedMediaLibrary do
         |> Map.values()
         |> Enum.map(&String.trim(&1))
         |> Enum.uniq()
-        |> Enum.map(&Map.get(persons, &1))
+        |> Enum.map(&get_or_create_person(&1, :actor))
 
       attrs =
         %{
@@ -214,7 +231,6 @@ defmodule Mix.Tasks.SeedMediaLibrary do
 
   def run(_opts) do
     genres = seed_genres()
-    persons = seed_persons()
-    seed_movies(genres, persons)
+    seed_movies(genres)
   end
 end
