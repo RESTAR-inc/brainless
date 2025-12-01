@@ -1,15 +1,6 @@
 defmodule Brainless.Rag.Embedding.Client do
   @moduledoc """
-  See https://www.elastic.co/docs/solutions/search/vector/knn#knn-similarity-search
-
-  How similarity works:
-
-    l2_norm: sqrt((1 / _score) - 1)
-    cosine: (2 * _score) - 1
-    dot_product: (2 * _score) - 1
-    max_inner_product:
-      _score < 1: 1 - (1 / _score)
-      _score >= 1: _score - 1
+  See https://www.elastic.co/docs/solutions/search/vector/knn
   """
   use HTTPoison.Base
 
@@ -21,10 +12,10 @@ defmodule Brainless.Rag.Embedding.Client do
           | {:num_candidates, pos_integer()}
           | {:filter, map()}
 
-  @similarity "cosine"
+  @similarity "l2_norm"
   @default_timeout to_timeout(second: 30)
   @search_k 100
-  @search_similarity 0.5
+  @search_similarity 0.6
   @search_num_candidates 1000
 
   @impl true
@@ -62,15 +53,14 @@ defmodule Brainless.Rag.Embedding.Client do
     end
   end
 
-  @spec get_mappings(integer(), map()) :: map()
-  def get_mappings(dimensions, meta) do
+  defp get_mappings(dimensions, similarity, meta) do
     %{
       properties: %{
         embedding: %{
           type: "dense_vector",
           dims: dimensions,
           index: true,
-          similarity: @similarity
+          similarity: similarity
         },
         meta: %{
           properties: meta
@@ -79,20 +69,11 @@ defmodule Brainless.Rag.Embedding.Client do
     }
   end
 
-  @spec delete_index(String.t()) :: any()
-  def delete_index(index_name) do
-    case delete!(index_name) do
-      %{body: %{"error" => error}} ->
-        {:error, error}
+  @spec create_index(String.t(), integer(), map(), [keyword()]) :: {:error, term()} | :ok
+  def create_index(index_name, dimensions, mappings, opts \\ []) do
+    similarity = Keyword.get(opts, :similarity, @similarity)
 
-      _ ->
-        :ok
-    end
-  end
-
-  @spec create_index(String.t(), integer(), map()) :: {:error, term()} | :ok
-  def create_index(index_name, dimensions, mappings) do
-    case put!(index_name, %{mappings: get_mappings(dimensions, mappings)}) do
+    case put!(index_name, %{mappings: get_mappings(dimensions, similarity, mappings)}) do
       %{body: %{"error" => error}} ->
         {:error, error}
 
@@ -106,6 +87,17 @@ defmodule Brainless.Rag.Embedding.Client do
     payload = %{meta: meta, embedding: embedding}
 
     case put!("#{index_name}/_doc/#{id}/", payload) do
+      %{body: %{"error" => error}} ->
+        {:error, error}
+
+      _ ->
+        :ok
+    end
+  end
+
+  @spec delete_index(String.t()) :: any()
+  def delete_index(index_name) do
+    case delete!(index_name) do
       %{body: %{"error" => error}} ->
         {:error, error}
 
@@ -134,13 +126,18 @@ defmodule Brainless.Rag.Embedding.Client do
   end
 
   defp extract_search_item(%{"_source" => %{"meta" => meta}, "_score" => score}),
-    do: {meta, score}
+    do: {meta, invert_score(score, @similarity)}
 
   @spec search(String.t(), [float()], [search_options()]) ::
           {:error, term()} | {:ok, [{map(), float()}]}
+  @spec search(binary(), [float()]) :: {:error, <<_::104>>} | {:ok, [{map(), float()}]}
   def search(index_name, vector, opts \\ []) do
     url = "#{index_name}/_search"
-    params = %{knn: prepare_search_params(vector, opts)}
+
+    params = %{
+      knn: prepare_search_params(vector, opts),
+      size: 10
+    }
 
     case post!(url, params) do
       %{status_code: 200, body: %{"hits" => %{"hits" => hits}}} ->
@@ -150,4 +147,18 @@ defmodule Brainless.Rag.Embedding.Client do
         {:error, "Unknown error"}
     end
   end
+
+  # See https://www.elastic.co/docs/solutions/search/vector/knn#knn-similarity-search
+  # How to invert _score back to the underlying similarity
+  #   l2_norm: sqrt((1 / _score) - 1)
+  #   cosine: (2 * _score) - 1
+  #   dot_product: (2 * _score) - 1
+  #   max_inner_product:
+  #     _score < 1: 1 - (1 / _score)
+  #     _score >= 1: _score - 1
+  defp invert_score(score, "l2_norm"), do: :math.sqrt(1 / score - 1)
+  defp invert_score(score, "cosine"), do: 2 * score - 1
+  defp invert_score(score, "dot_product"), do: 2 * score - 1
+  defp invert_score(score, "max_inner_product") when score < 1, do: 1 - 1 / score
+  defp invert_score(score, "max_inner_product") when score >= 1, do: score - 1
 end

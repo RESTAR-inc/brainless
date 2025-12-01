@@ -12,6 +12,7 @@ defmodule BrainlessWeb.MediaLive.Index do
      socket
      |> assign(:page_title, "Listing Media")
      |> assign(:ai_response, nil)
+     |> assign(:query, nil)
      |> assign(:media_list, [])}
   end
 
@@ -31,12 +32,14 @@ defmodule BrainlessWeb.MediaLive.Index do
         {:noreply,
          socket
          |> assign(:media_list, media_list)
+         |> assign(:query, query)
          |> assign(:ai_response, ai_response)}
 
       {:error, _} ->
         {:noreply,
          socket
          |> assign(:media_list, [])
+         |> assign(:query, nil)
          |> assign(:ai_response, nil)}
     end
   end
@@ -63,11 +66,15 @@ defmodule BrainlessWeb.MediaLive.Index do
         {@ai_response}
       </div>
 
-      <div class="flex flex-col list-none divide-y">
-        <li :for={{media, media_type, score} <- @media_list} class="p-4">
-          <.movie :if={media_type == "movie"} movie={media} score={score} />
-          <.book :if={media_type == "book"} book={media} score={score} />
-        </li>
+      <div :if={@media_list != []} class="flex flex-col divide-y">
+        <div class="p-4">Found {length(@media_list)}</div>
+        <%= for {media, media_type, score} <- @media_list do %>
+          <.movie :if={media_type == "movie"} movie={media} score={score} class="p-4" />
+          <.book :if={media_type == "book"} book={media} score={score} class="p-4" />
+        <% end %>
+      </div>
+      <div :if={@media_list == [] && @query != nil} class="flex items-center justify-center">
+        Nothing found
       </div>
     </Layouts.app>
     """

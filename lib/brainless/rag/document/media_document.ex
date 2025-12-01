@@ -59,7 +59,7 @@ defmodule Brainless.Rag.Document.MediaDocument do
 
     ## Details
       - Directed By: #{movie.director.name}
-      - Cast: #{format_cast(movie)}
+      - Cast: #{format_persons(movie)}
 
     ## Ratings
       - IMDB: #{movie.imdb_rating}
@@ -72,7 +72,7 @@ defmodule Brainless.Rag.Document.MediaDocument do
     # #{book.title} (#{format_release_year(book)})
     ## #{book.subtitle || "---"}
 
-    Authors: #{format_cast(book)}
+    Authors: #{format_persons(book)}
     Genre: #{format_genres(book)}
 
     ## Synopsis
@@ -94,14 +94,14 @@ defmodule Brainless.Rag.Document.MediaDocument do
 
   defp format_release_year(%Movie{release_date: release_date}) do
     case release_date do
-      nil -> "unknown"
+      nil -> "n/a"
       date -> "#{date.year}"
     end
   end
 
   defp format_release_year(%Book{published_at: published_at}) do
     case published_at do
-      nil -> "unknown"
+      nil -> "n/a"
       date -> "#{date.year}"
     end
   end
@@ -109,6 +109,6 @@ defmodule Brainless.Rag.Document.MediaDocument do
   defp format_genres(%Movie{genres: genres}), do: Enum.map_join(genres, ", ", & &1.name)
   defp format_genres(%Book{genres: genres}), do: Enum.map_join(genres, ", ", & &1.name)
 
-  defp format_cast(%Movie{cast: cast}), do: Enum.map_join(cast, ", ", & &1.name)
-  defp format_cast(%Book{authors: authors}), do: Enum.map_join(authors, ", ", & &1.name)
+  defp format_persons(%Movie{cast: cast}), do: Enum.map_join(cast, ", ", & &1.name)
+  defp format_persons(%Book{authors: authors}), do: Enum.map_join(authors, ", ", & &1.name)
 end
