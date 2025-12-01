@@ -12,7 +12,7 @@ defmodule Brainless.Tasks.SeedMovies do
   alias Brainless.MediaLibrary.Movie
   alias Brainless.Tasks.Utils
 
-  @csv "priv/data/imdb_top_1000.csv"
+  @csv "priv/data/imdb-movies-dataset.csv"
 
   defp row_to_map([
          poster_url,
@@ -22,15 +22,14 @@ defmodule Brainless.Tasks.SeedMovies do
          runtime,
          genre,
          imdb_rating,
-         description,
          meta_score,
          director,
-         star1,
-         star2,
-         star3,
-         star4,
+         cast,
          number_of_votes,
-         gross
+         description,
+         review_count,
+         review_title,
+         review
        ]) do
     %{
       poster_url: poster_url,
@@ -40,28 +39,66 @@ defmodule Brainless.Tasks.SeedMovies do
       runtime: runtime,
       genre: genre,
       imdb_rating: imdb_rating,
-      description: description,
       meta_score: meta_score,
       director: director,
-      star1: star1,
-      star2: star2,
-      star3: star3,
-      star4: star4,
+      cast: cast,
       number_of_votes: number_of_votes,
-      gross: gross
+      description: description,
+      review_count: review_count,
+      review_title: review_title,
+      review: review
     }
   end
 
-  defp parse_value(:gross, data) do
-    case data[:gross] do
-      nil ->
-        nil
+  defp create_director(data) do
+    data[:director] |> String.trim() |> Utils.get_or_create_person(:director)
+  end
 
-      value when is_binary(value) ->
-        case String.replace(value, ",", "") |> Integer.parse() do
-          {val, _} -> val
-          :error -> nil
-        end
+  defp update_movie(%Movie{} = movie, cast_str, genres_str) do
+    with {:ok, cast} <- Utils.create_persons_from_str(cast_str, :actor),
+         {:ok, genres} <- Utils.create_genres_from_str(genres_str) do
+      movie
+      |> Repo.preload([:genres, :cast])
+      |> MediaLibrary.change_movie()
+      |> cast_assoc(:genres)
+      |> put_assoc(:genres, genres)
+      |> cast_assoc(:cast)
+      |> put_assoc(:cast, cast)
+      |> Repo.update()
+    else
+      {:error, error} ->
+        {:error, error}
+    end
+  end
+
+  defp create_movie(data, director) do
+    MediaLibrary.create_movie(%{
+      title: data[:title],
+      description: data[:description],
+      poster_url: data[:poster_url],
+      release_date: Utils.parse_year(data[:release_year]),
+      imdb_rating: Utils.parse_float(data[:imdb_rating]),
+      meta_score: Utils.parse_int(data[:meta_score]),
+      number_of_votes: Utils.parse_int(data[:number_of_votes]),
+      director_id: director.id,
+      review_title: data[:review_title],
+      review: data[:review]
+    })
+  end
+
+  defp import_movie(%{director: ""}), do: {:skip, nil}
+
+  defp import_movie(data) do
+    with {:ok, director} <- create_director(data),
+         {:ok, created_movie} <- create_movie(data, director),
+         {:ok, updated_movie} <- update_movie(created_movie, data[:cast], data[:genre]) do
+      {:ok, updated_movie}
+    else
+      {:error, error} ->
+        {:error, error}
+
+      _ ->
+        {:error, "Unknown error"}
     end
   end
 
@@ -71,50 +108,17 @@ defmodule Brainless.Tasks.SeedMovies do
     |> Stream.map(fn row ->
       data = row_to_map(row)
 
-      director =
-        data[:director]
-        |> String.trim()
-        |> Utils.get_or_create_person(:director)
+      Logger.info("Movie to import: #{data[:title]}")
 
-      cast =
-        data
-        |> Map.take([:star1, :star2, :star3, :star4])
-        |> Map.values()
-        |> Enum.map(&String.trim(&1))
-        |> Enum.uniq()
-        |> Enum.map(&Utils.get_or_create_person(&1, :actor))
+      case import_movie(data) do
+        {:ok, movie} ->
+          Logger.info("Movie imported: #{movie.id}/#{movie.title}")
 
-      genres = data[:genre] |> Utils.create_genres()
+        {:skip, nil} ->
+          Logger.info("Movie skipped: #{data[:title]}")
 
-      attrs =
-        %{
-          title: data[:title],
-          description: data[:description],
-          poster_url: data[:poster_url],
-          release_date: Utils.parse_year(data[:release_year]),
-          imdb_rating: Utils.parse_int(data[:imdb_rating]),
-          meta_score: Utils.parse_int(data[:meta_score]),
-          gross: parse_value(:gross, data),
-          number_of_votes: Utils.parse_int(data[:number_of_votes]),
-          director_id: director.id
-        }
-
-      case MediaLibrary.create_movie(attrs) do
-        {:ok, %Movie{} = new_movie} ->
-          new_movie
-          |> Repo.preload([:genres, :cast])
-          |> MediaLibrary.change_movie()
-          |> cast_assoc(:genres)
-          |> put_assoc(:genres, genres)
-          |> cast_assoc(:cast)
-          |> put_assoc(:cast, cast)
-          |> Repo.update()
-
-          Logger.info("Movie:ok #{new_movie.id}/#{new_movie.title}")
-
-        {:error, _error} ->
-          Logger.error("Movie:error #{data[:title]}")
-          raise "Movie Import Error"
+        {:error, _} ->
+          Logger.error("Movie failed: #{data[:title]}")
       end
     end)
     |> Stream.run()

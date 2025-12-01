@@ -12,8 +12,9 @@ defmodule Brainless.MediaLibrary.Movie do
     field :release_date, :date
     field :imdb_rating, :float
     field :meta_score, :integer
-    field :gross, :integer
     field :number_of_votes, :integer
+    field :review_title, :string
+    field :review, :string
 
     belongs_to :director, Brainless.MediaLibrary.Person
 
@@ -33,9 +34,10 @@ defmodule Brainless.MediaLibrary.Movie do
       :release_date,
       :imdb_rating,
       :meta_score,
-      :gross,
       :number_of_votes,
-      :director_id
+      :director_id,
+      :review_title,
+      :review
     ])
     |> validate_required([
       :title,

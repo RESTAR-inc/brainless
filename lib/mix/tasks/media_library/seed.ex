@@ -9,6 +9,7 @@ defmodule Mix.Tasks.MediaLibrary.Seed do
   @requirements ["app.start"]
 
   def run(_opts) do
+    Logger.configure(level: :info)
     SeedBooks.seed()
     SeedMovies.seed()
   end

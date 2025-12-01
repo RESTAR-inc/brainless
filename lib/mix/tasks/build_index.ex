@@ -17,15 +17,27 @@ defmodule Mix.Tasks.BuildIndex do
 
   @requirements ["app.start", "app.config"]
 
-  def run(_) do
-    index_name = MediaDocument.index_name()
-    dimensions = Embedding.dimensions()
-    mappings = MediaDocument.mappings()
+  @doc_types ["movies", "books"]
 
-    Client.create_index(index_name, dimensions, mappings)
-    update_all_movies()
-    update_all_books()
+  def run(args) do
+    Logger.configure(level: :info)
+
+    {parsed, _, _} =
+      OptionParser.parse(args,
+        strict: [
+          type: [:string, :keep]
+        ]
+      )
+
+    update_all(parsed)
   end
+
+  defp update_all([]), do: Enum.each(@doc_types, &update({:type, &1}))
+  defp update_all(types), do: Enum.each(types, &update/1)
+
+  defp update({:type, "movies"}), do: update_all_movies()
+  defp update({:type, "books"}), do: update_all_books()
+  defp update(_), do: nil
 
   defp chunk_size do
     case Embedding.provider() do
@@ -53,20 +65,30 @@ defmodule Mix.Tasks.BuildIndex do
     |> Stream.run()
   end
 
+  defp update_index(%EmbedData{} = data, index_name) do
+    case Client.insert_index(index_name, data) do
+      :ok ->
+        Logger.info("Index created for #{data.id}")
+        :ok
+
+      {:error, _error} ->
+        Logger.error("Index failed: #{data.id}")
+    end
+  end
+
   defp update_entities(entities) do
     documents = Enum.map(entities, &MediaDocument.document/1)
     index_name = MediaDocument.index_name()
 
-    {:ok, embeddings} = Embedding.docs_to_index_list(documents)
+    ids_to_index = Enum.map_join(documents, ", ", & &1.id)
+    Logger.info("Indexes in queue: #{ids_to_index}")
 
-    Enum.each(embeddings, fn %EmbedData{} = embed_data ->
-      case Client.insert_index(index_name, embed_data) do
-        :ok ->
-          :ok
+    case Embedding.docs_to_index_list(documents) do
+      {:ok, embeddings} ->
+        Enum.each(embeddings, &update_index(&1, index_name))
 
-        {:error, error} ->
-          raise error
-      end
-    end)
+      {:error, _error} ->
+        raise "Unbale to build an index"
+    end
   end
 end

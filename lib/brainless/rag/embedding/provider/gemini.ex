@@ -32,8 +32,8 @@ defmodule Brainless.Rag.Embedding.Provider.Gemini do
 
         {:ok, result}
 
-      {:error, _reason} ->
-        {:error, "Unable to create a vector list"}
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 end

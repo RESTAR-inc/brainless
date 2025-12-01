@@ -14,6 +14,7 @@ defmodule Brainless.Rag.Embedding.Client do
 
   @similarity "l2_norm"
   @default_timeout to_timeout(second: 30)
+  @search_size 30
   @search_k 100
   @search_similarity 0.6
   @search_num_candidates 1000
@@ -113,16 +114,20 @@ defmodule Brainless.Rag.Embedding.Client do
   defp apply_filter(base_params, nil), do: base_params
 
   defp prepare_search_params(vector, opts) do
-    filter = Keyword.get(opts, :filter)
+    knn =
+      %{
+        query_vector: vector,
+        field: "embedding",
+        similarity: Keyword.get(opts, :similarity, @search_similarity),
+        k: Keyword.get(opts, :k, @search_k),
+        num_candidates: Keyword.get(opts, :num_candidates, @search_num_candidates)
+      }
+      |> apply_filter(Keyword.get(opts, :filter))
 
     %{
-      query_vector: vector,
-      field: "embedding",
-      similarity: Keyword.get(opts, :similarity, @search_similarity),
-      k: Keyword.get(opts, :k, @search_k),
-      num_candidates: Keyword.get(opts, :num_candidates, @search_num_candidates)
+      knn: knn,
+      size: Keyword.get(opts, :size, @search_size)
     }
-    |> apply_filter(filter)
   end
 
   defp extract_search_item(%{"_source" => %{"meta" => meta}, "_score" => score}),
@@ -134,10 +139,7 @@ defmodule Brainless.Rag.Embedding.Client do
   def search(index_name, vector, opts \\ []) do
     url = "#{index_name}/_search"
 
-    params = %{
-      knn: prepare_search_params(vector, opts),
-      size: 10
-    }
+    params = prepare_search_params(vector, opts)
 
     case post!(url, params) do
       %{status_code: 200, body: %{"hits" => %{"hits" => hits}}} ->

@@ -8,6 +8,9 @@ defmodule Brainless.Rag.Document.MediaDocument do
   alias Brainless.MediaLibrary.Movie
   alias Brainless.Rag.Embedding.EmbedDocument
 
+  @max_movie_description_length 1000
+  @max_book_description_length 1000
+
   @impl true
   def index_name, do: "media"
 
@@ -51,19 +54,20 @@ defmodule Brainless.Rag.Document.MediaDocument do
     """
     # #{movie.title} (#{format_release_year(movie)})
 
+    Directed By: #{movie.director.name}
     Genre: #{format_genres(movie)}
 
     ## Synopsis
 
-    #{movie.description}
+    #{get_description(movie.description || "n/a", @max_movie_description_length)}
 
     ## Details
-      - Directed By: #{movie.director.name}
       - Cast: #{format_persons(movie)}
-
-    ## Ratings
       - IMDB: #{movie.imdb_rating}
       - Meta Score: #{movie.meta_score}
+
+    ## Review: #{movie.review_title || "n/a"}
+    #{get_description(movie.review || "n/a", @max_movie_description_length)}
     """
   end
 
@@ -77,14 +81,12 @@ defmodule Brainless.Rag.Document.MediaDocument do
 
     ## Synopsis
 
-    #{book.description || "n/a"}
+    #{get_description(book.description || "n/a", @max_book_description_length)}
 
     ## Details
       - Pages: #{book.num_pages || "n/a"}
       - ISBN13: #{book.isbn13}
       - ISBN10: #{book.isbn10}
-
-    ## Ratings
       - Average Rating: #{book.average_rating || "n/a"}
       - Ratings Count: #{book.ratings_count || "n/a"}
     """
@@ -111,4 +113,12 @@ defmodule Brainless.Rag.Document.MediaDocument do
 
   defp format_persons(%Movie{cast: cast}), do: Enum.map_join(cast, ", ", & &1.name)
   defp format_persons(%Book{authors: authors}), do: Enum.map_join(authors, ", ", & &1.name)
+
+  defp get_description(value, max) when is_binary(value) and is_integer(max) do
+    if String.length(value) > max do
+      String.slice(value, 0, max) <> "..."
+    else
+      value
+    end
+  end
 end

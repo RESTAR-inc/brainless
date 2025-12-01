@@ -2,7 +2,6 @@ defmodule Brainless.Tasks.Utils do
   @moduledoc """
   Seed Utils
   """
-  require Logger
 
   alias Brainless.MediaLibrary
   alias Brainless.MediaLibrary.Genre
@@ -31,72 +30,63 @@ defmodule Brainless.Tasks.Utils do
     end
   end
 
-  defp get_or_create_genre(name) do
-    case MediaLibrary.get_genre_by_name(name) do
-      %Genre{} = genre ->
-        genre
-
-      nil ->
-        case MediaLibrary.create_genre(%{name: name}) do
-          {:ok, %Genre{} = new_genre} ->
-            Logger.info("Genre:created #{new_genre.id}/#{new_genre.name}")
-            new_genre
-
-          {:error, _} ->
-            Logger.error("Genre:error #{name}")
-            raise "Genre Import Error"
-        end
-    end
-  end
-
-  defp create_person("", _), do: nil
-
-  defp create_person(name, occupation) when is_binary(name) do
-    case MediaLibrary.create_person(%{name: name, occupations: [occupation]}) do
-      {:ok, %Person{} = new_person} ->
-        Logger.info("Person:created #{new_person.id}/#{new_person.name}")
-        new_person
-
-      {:error, _} ->
-        raise "Person:create #{name}"
-    end
-  end
-
-  defp update_person(%Person{} = person, occupation) do
-    attrs = %{occupations: [occupation | person.occupations]}
-
-    case MediaLibrary.update_person(person, attrs) do
-      {:ok, %Person{} = updated_person} ->
-        Logger.info("Person:updated #{updated_person.id}/#{updated_person.name}")
-        updated_person
-
-      {:error, _} ->
-        raise "Person:update #{person.name}"
-    end
-  end
-
   def get_or_create_person(name, occupation) do
     case MediaLibrary.get_person_by_name(name) do
       %Person{} = person ->
         if occupation in person.occupations do
-          person
+          {:ok, person}
         else
-          update_person(person, occupation)
+          MediaLibrary.update_person(person, %{occupations: [occupation | person.occupations]})
         end
 
       nil ->
-        create_person(name, occupation)
+        MediaLibrary.create_person(%{name: name, occupations: [occupation]})
     end
   end
 
-  def create_genres(""), do: []
-  def create_genres(nil), do: []
+  def get_or_create_genre(name) do
+    case MediaLibrary.get_genre_by_name(name) do
+      %Genre{} = genre ->
+        {:ok, genre}
 
-  def create_genres(input) when is_binary(input) do
-    input
-    |> String.split(",")
-    |> Enum.map(&String.trim(&1))
-    |> Enum.uniq()
-    |> Enum.map(&get_or_create_genre/1)
+      nil ->
+        MediaLibrary.create_genre(%{name: name})
+    end
+  end
+
+  def create_genres_from_str(input, delimiter \\ ",") when is_binary(input) do
+    created =
+      input
+      |> String.split(delimiter)
+      |> Enum.map(&String.trim(&1))
+      |> Enum.uniq()
+      |> Enum.reject(&(String.length(&1) == 0))
+      |> Enum.map(&get_or_create_genre/1)
+
+    case Enum.find(created, &match?({:error, _}, &1)) do
+      nil ->
+        {:ok, Enum.map(created, fn {_, genre} -> genre end)}
+
+      {:error, error} ->
+        {:error, error}
+    end
+  end
+
+  def create_persons_from_str(input, occupation, delimiter \\ ",") when is_binary(input) do
+    created =
+      input
+      |> String.split(delimiter)
+      |> Enum.map(&String.trim(&1))
+      |> Enum.uniq()
+      |> Enum.reject(&(String.length(&1) == 0))
+      |> Enum.map(&get_or_create_person(&1, occupation))
+
+    case Enum.find(created, &match?({:error, _}, &1)) do
+      nil ->
+        {:ok, Enum.map(created, fn {_, person} -> person end)}
+
+      {:error, error} ->
+        {:error, error}
+    end
   end
 end

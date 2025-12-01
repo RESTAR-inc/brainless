@@ -26,8 +26,9 @@ defmodule Brainless.Repo.Migrations.CreateMovies do
       add :release_date, :date
       add :imdb_rating, :float
       add :meta_score, :integer
-      add :gross, :integer, null: true
       add :number_of_votes, :integer
+      add :review_title, :string, size: 512
+      add :review, :text
 
       add :director_id, references(:persons, on_delete: :nothing), null: true
 

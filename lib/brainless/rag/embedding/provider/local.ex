@@ -21,8 +21,8 @@ defmodule Brainless.Rag.Embedding.Provider.Local do
       {:ok, %Req.Response{body: body}} ->
         {:ok, body}
 
-      {:error, _reason} ->
-        {:error, "Unable to create a vector"}
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -44,11 +44,11 @@ defmodule Brainless.Rag.Embedding.Provider.Local do
       {:ok, %Req.Response{status: 422}} ->
         {:error, "Validation error"}
 
-      {:ok, _response} ->
-        {:error, "Unable to create a vector list"}
+      {:ok, %Req.Response{status: status, body: body}} ->
+        {:error, %{status: status, body: body}}
 
-      {:error, _reason} ->
-        {:error, "Network error"}
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
