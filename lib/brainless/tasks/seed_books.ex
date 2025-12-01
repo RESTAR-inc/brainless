@@ -59,7 +59,7 @@ defmodule Brainless.Tasks.SeedBooks do
   end
 
   defp update_book(%Book{} = book, authors_str, genres_str) do
-    with {:ok, authors} <- Utils.create_persons_from_str(authors_str, :writer, ";"),
+    with {:ok, authors} <- Utils.create_persons_from_str(authors_str, ";"),
          {:ok, genres} <- Utils.create_genres_from_str(genres_str) do
       book
       |> Repo.preload([:genres, :authors])

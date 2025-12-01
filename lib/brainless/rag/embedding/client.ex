@@ -12,11 +12,13 @@ defmodule Brainless.Rag.Embedding.Client do
           | {:num_candidates, pos_integer()}
           | {:filter, map()}
 
-  @similarity "l2_norm"
+  # l2_norm, cosine, dot_product, max_inner_product
+
+  @similarity "cosine"
   @default_timeout to_timeout(second: 30)
   @search_size 30
   @search_k 100
-  @search_similarity 0.6
+  @search_similarity 0.3
   @search_num_candidates 1000
 
   @impl true
@@ -54,14 +56,14 @@ defmodule Brainless.Rag.Embedding.Client do
     end
   end
 
-  defp get_mappings(dimensions, similarity, meta) do
+  defp get_mappings(dimensions, meta) do
     %{
       properties: %{
         embedding: %{
           type: "dense_vector",
           dims: dimensions,
           index: true,
-          similarity: similarity
+          similarity: @similarity
         },
         meta: %{
           properties: meta
@@ -70,11 +72,9 @@ defmodule Brainless.Rag.Embedding.Client do
     }
   end
 
-  @spec create_index(String.t(), integer(), map(), [keyword()]) :: {:error, term()} | :ok
-  def create_index(index_name, dimensions, mappings, opts \\ []) do
-    similarity = Keyword.get(opts, :similarity, @similarity)
-
-    case put!(index_name, %{mappings: get_mappings(dimensions, similarity, mappings)}) do
+  @spec create_index(String.t(), integer(), map()) :: {:error, term()} | :ok
+  def create_index(index_name, dimensions, mappings) do
+    case put!(index_name, %{mappings: get_mappings(dimensions, mappings)}) do
       %{body: %{"error" => error}} ->
         {:error, error}
 
@@ -158,9 +158,10 @@ defmodule Brainless.Rag.Embedding.Client do
   #   max_inner_product:
   #     _score < 1: 1 - (1 / _score)
   #     _score >= 1: _score - 1
-  defp invert_score(score, "l2_norm"), do: :math.sqrt(1 / score - 1)
-  defp invert_score(score, "cosine"), do: 2 * score - 1
-  defp invert_score(score, "dot_product"), do: 2 * score - 1
-  defp invert_score(score, "max_inner_product") when score < 1, do: 1 - 1 / score
-  defp invert_score(score, "max_inner_product") when score >= 1, do: score - 1
+  def invert_score(score, "l2_norm"), do: :math.sqrt(1 / score - 1)
+  def invert_score(score, "cosine"), do: 2 * score - 1
+  def invert_score(score, "dot_product"), do: 2 * score - 1
+  def invert_score(score, "max_inner_product") when score < 1, do: 1 - 1 / score
+  def invert_score(score, "max_inner_product") when score >= 1, do: score - 1
+  def invert_score(_, _), do: raise("Invalid type")
 end

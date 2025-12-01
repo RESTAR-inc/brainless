@@ -29,6 +29,11 @@ defmodule Mix.Tasks.BuildIndex do
         ]
       )
 
+    index_name = MediaDocument.index_name()
+    dimensions = Embedding.dimensions()
+    mappings = MediaDocument.mappings()
+
+    Client.create_index(index_name, dimensions, mappings)
     update_all(parsed)
   end
 
@@ -49,7 +54,7 @@ defmodule Mix.Tasks.BuildIndex do
   defp update_all_movies do
     from(movie in Movie)
     |> Query.stream_all(chunk_size(),
-      preload: [:director, :cast, :genres],
+      preload: [:cast, :genres],
       order_by: [asc: :id]
     )
     |> Stream.each(&update_entities/1)

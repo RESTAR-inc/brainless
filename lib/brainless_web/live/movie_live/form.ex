@@ -16,15 +16,7 @@ defmodule BrainlessWeb.MovieLive.Form do
       <.form for={@form} id="movie-form" phx-change="validate" phx-submit="save">
         <.input field={@form[:title]} type="text" label="Title" />
         <.input field={@form[:description]} type="textarea" label="Description" />
-        <.input field={@form[:poster_url]} type="text" label="Poster url" />
-        <.input field={@form[:release_date]} type="date" label="Release date" />
-        <.input field={@form[:imdb_rating]} type="number" label="Imdb rating" step="any" />
-        <.input field={@form[:meta_score]} type="number" label="Meta score" />
-
-        <%!-- <.inputs_for :let={genre} field={@form[:genres]}>
-          <.input field={genre} type="select" options={@genre_options} />
-        </.inputs_for> --%>
-        <.input field={@form[:director_id]} type="select" options={@person_options} label="Director" />
+        <.input field={@form[:summary]} type="textarea" label="Summary" />
 
         <footer>
           <.button phx-disable-with="Saving..." variant="primary">Save Movie</.button>

@@ -16,12 +16,16 @@ defmodule Brainless.Tasks.Utils do
     end
   end
 
+  def parse_float(nil), do: nil
+
   def parse_float(input) do
     case Float.parse(input) do
       {value, _} -> value
       :error -> nil
     end
   end
+
+  def parse_int(nil), do: nil
 
   def parse_int(input) do
     case Integer.parse(input) do
@@ -30,17 +34,13 @@ defmodule Brainless.Tasks.Utils do
     end
   end
 
-  def get_or_create_person(name, occupation) do
+  def get_or_create_person(name) do
     case MediaLibrary.get_person_by_name(name) do
       %Person{} = person ->
-        if occupation in person.occupations do
-          {:ok, person}
-        else
-          MediaLibrary.update_person(person, %{occupations: [occupation | person.occupations]})
-        end
+        {:ok, person}
 
       nil ->
-        MediaLibrary.create_person(%{name: name, occupations: [occupation]})
+        MediaLibrary.create_person(%{name: name})
     end
   end
 
@@ -72,18 +72,35 @@ defmodule Brainless.Tasks.Utils do
     end
   end
 
-  def create_persons_from_str(input, occupation, delimiter \\ ",") when is_binary(input) do
-    created =
-      input
-      |> String.split(delimiter)
-      |> Enum.map(&String.trim(&1))
-      |> Enum.uniq()
-      |> Enum.reject(&(String.length(&1) == 0))
-      |> Enum.map(&get_or_create_person(&1, occupation))
+  def create_persons_from_str("[" <> input) do
+    input
+    |> String.slice(0..-2//1)
+    |> String.split(",")
+    |> Enum.map(fn name ->
+      name
+      |> String.trim()
+      |> String.slice(1..-2//1)
+    end)
+    |> Enum.reject(&(String.length(&1) == 0))
+    |> Enum.uniq()
+    |> Enum.map(&get_or_create_person/1)
+    |> assert_is_list_is_invalid()
+  end
 
-    case Enum.find(created, &match?({:error, _}, &1)) do
+  def create_persons_from_str(input, delimiter) when is_binary(input) do
+    input
+    |> String.split(delimiter)
+    |> Enum.map(&String.trim(&1))
+    |> Enum.reject(&(String.length(&1) == 0))
+    |> Enum.uniq()
+    |> Enum.map(&get_or_create_person/1)
+    |> assert_is_list_is_invalid()
+  end
+
+  defp assert_is_list_is_invalid(items) do
+    case Enum.find(items, &match?({:error, _}, &1)) do
       nil ->
-        {:ok, Enum.map(created, fn {_, person} -> person end)}
+        {:ok, Enum.map(items, fn {_, item} -> item end)}
 
       {:error, error} ->
         {:error, error}

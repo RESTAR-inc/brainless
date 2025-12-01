@@ -4,7 +4,6 @@ defmodule Brainless.Repo.Migrations.CreateMovies do
   def change do
     create table(:persons) do
       add :name, :string, null: false
-      add :occupations, {:array, :string}, null: false, default: []
 
       timestamps(type: :utc_datetime)
     end
@@ -21,16 +20,15 @@ defmodule Brainless.Repo.Migrations.CreateMovies do
 
     create table(:movies) do
       add :title, :string, null: false
+      add :start_year, :integer
+      add :end_year, :integer
+      add :type, :string
+      add :country, :string
       add :description, :text
-      add :poster_url, :string
-      add :release_date, :date
-      add :imdb_rating, :float
-      add :meta_score, :integer
+      add :summary, :text
+      add :rating, :float
       add :number_of_votes, :integer
-      add :review_title, :string, size: 512
-      add :review, :text
-
-      add :director_id, references(:persons, on_delete: :nothing), null: true
+      add :image_url, :string
 
       timestamps(type: :utc_datetime)
     end

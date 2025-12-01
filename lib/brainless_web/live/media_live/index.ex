@@ -6,6 +6,15 @@ defmodule BrainlessWeb.MediaLive.Index do
   alias Brainless.Rag
   alias Brainless.Rag.Document.MediaDocument
 
+  defp to_md(nil), do: nil
+
+  defp to_md(input) do
+    case MDEx.to_html(input) do
+      {:ok, html} -> html
+      {:error, _} -> nil
+    end
+  end
+
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
@@ -27,13 +36,13 @@ defmodule BrainlessWeb.MediaLive.Index do
   end
 
   defp search(socket, query) do
-    case Rag.search(MediaDocument.index_name(), query) do
+    case Rag.search(MediaDocument.index_name(), query, use_ai: true) do
       {:ok, media_list, ai_response} ->
         {:noreply,
          socket
          |> assign(:media_list, media_list)
          |> assign(:query, query)
-         |> assign(:ai_response, ai_response)}
+         |> assign(:ai_response, to_md(ai_response))}
 
       {:error, _} ->
         {:noreply,
@@ -62,8 +71,8 @@ defmodule BrainlessWeb.MediaLive.Index do
         <.button phx-disable-with="..." variant="primary">Search</.button>
       </form>
 
-      <div :if={@ai_response != nil} class="whitespace-pre-wrap p-2 w-full">
-        {@ai_response}
+      <div :if={@ai_response != nil} class="p-2 w-full markdown">
+        {raw(@ai_response)}
       </div>
 
       <div :if={@media_list != []} class="flex flex-col divide-y">

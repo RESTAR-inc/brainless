@@ -52,28 +52,29 @@ defmodule Brainless.Rag.Document.MediaDocument do
   @impl true
   def format(%Movie{} = movie) do
     """
-    # #{movie.title} (#{format_release_year(movie)})
+    # #{movie.title} (#{movie.type})
 
-    Directed By: #{movie.director.name}
+    #{format_year(movie)}
+
     Genre: #{format_genres(movie)}
+
+    ## Cast
+      #{format_persons(movie)}
+
+    ## Details
+      - Country: #{movie.country || "n/a"}
+      - Rating: #{movie.rating || "n/a"}
+      - Number of votes: #{movie.number_of_votes || "n/a"}
 
     ## Synopsis
 
-    #{get_description(movie.description || "n/a", @max_movie_description_length)}
-
-    ## Details
-      - Cast: #{format_persons(movie)}
-      - IMDB: #{movie.imdb_rating}
-      - Meta Score: #{movie.meta_score}
-
-    ## Review: #{movie.review_title || "n/a"}
-    #{get_description(movie.review || "n/a", @max_movie_description_length)}
+    #{get_description(movie.summary || "n/a", @max_movie_description_length)}
     """
   end
 
   def format(%Book{} = book) do
     """
-    # #{book.title} (#{format_release_year(book)})
+    # #{book.title} (#{format_year(book)})
     ## #{book.subtitle || "---"}
 
     Authors: #{format_persons(book)}
@@ -94,14 +95,16 @@ defmodule Brainless.Rag.Document.MediaDocument do
 
   def format(_), do: ""
 
-  defp format_release_year(%Movie{release_date: release_date}) do
-    case release_date do
-      nil -> "n/a"
-      date -> "#{date.year}"
+  defp format_year(%Movie{start_year: start_year, end_year: end_year}) do
+    case {start_year, end_year} do
+      {left, nil} when is_integer(left) -> "#{left} - now"
+      {_, right} when is_integer(right) -> "n/a - #{right}"
+      {left, right} when is_integer(left) and is_integer(right) -> "#{left} - #{right}"
+      _ -> "n/a"
     end
   end
 
-  defp format_release_year(%Book{published_at: published_at}) do
+  defp format_year(%Book{published_at: published_at}) do
     case published_at do
       nil -> "n/a"
       date -> "#{date.year}"

@@ -7,6 +7,15 @@ defmodule BrainlessWeb.Media.Components do
   alias Brainless.MediaLibrary.Book
   alias Brainless.MediaLibrary.Movie
 
+  defp format_movie_year(%Movie{start_year: start_year, end_year: end_year}) do
+    case {start_year, end_year} do
+      {left, nil} when is_integer(left) -> "#{left} - now"
+      {_, right} when is_integer(right) -> "n/a - #{right}"
+      {left, right} when is_integer(left) and is_integer(right) -> "#{left} - #{right}"
+      _ -> "n/a"
+    end
+  end
+
   attr :type, :string, values: ~w(movie book), required: true
   attr :image, :string, required: true
   attr :class, :string, default: nil
@@ -22,9 +31,9 @@ defmodule BrainlessWeb.Media.Components do
   defp media(assigns) do
     ~H"""
     <div class={["flex flex-col gap-2 relative", @class]}>
-      <%= if @score != nil do %>
+      <%!-- <%= if @score != nil do %>
         <span class="text-sm absolute top-0 right-0">[{@score}]</span>
-      <% end %>
+      <% end %> --%>
       <h2 class="text-2xl flex items-center gap-2">
         <.icon :if={@type == "movie"} name="hero-film" class="size-6" />
         <.icon :if={@type == "book"} name="hero-book-open" class="size-6" />
@@ -53,18 +62,20 @@ defmodule BrainlessWeb.Media.Components do
 
   def movie(assigns) do
     ~H"""
-    <.media type="movie" image={@movie.poster_url} score={@score} {@rest}>
+    <.media type="movie" image={@movie.image_url} score={@score} {@rest}>
       <:title>
-        <.link navigate={~p"/movies/#{@movie}"}>
-          {@movie.title}
-        </.link>
+        <div class="flex flex-col gap-2">
+          <.link navigate={~p"/movies/#{@movie}"}>
+            {@movie.title} ({@movie.type})
+          </.link>
+          <div class="text-sm">{format_movie_year(@movie)}</div>
+        </div>
       </:title>
       <:prop label="Genres">{Enum.map_join(@movie.genres, ", ", & &1.name)}</:prop>
-      <:prop label="Director">{@movie.director.name}</:prop>
       <:prop label="Cast">{Enum.map_join(@movie.cast, ", ", & &1.name)}</:prop>
-      <:prop :if={@movie.release_date != nil} label="Released">{@movie.release_date}</:prop>
+      <:prop label="Rating">{@movie.rating || "n/a"}</:prop>
 
-      {@movie.description}
+      {@movie.summary}
     </.media>
     """
   end

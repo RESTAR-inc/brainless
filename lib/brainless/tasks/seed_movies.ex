@@ -12,86 +12,93 @@ defmodule Brainless.Tasks.SeedMovies do
   alias Brainless.MediaLibrary.Movie
   alias Brainless.Tasks.Utils
 
-  @csv "priv/data/imdb-movies-dataset.csv"
+  @csv "priv/data/netflix_list.csv"
 
   defp row_to_map([
-         poster_url,
+         imdb_id,
          title,
-         release_year,
+         popular_rank,
          certificate,
+         start_year,
+         end_year,
+         episodes,
          runtime,
-         genre,
-         imdb_rating,
-         meta_score,
-         director,
+         type,
+         orign_country,
+         language,
+         plot,
+         summary,
+         rating,
+         num_votes,
+         genres,
+         is_adult,
          cast,
-         number_of_votes,
-         description,
-         review_count,
-         review_title,
-         review
+         image_url
        ]) do
     %{
-      poster_url: poster_url,
+      imdb_id: imdb_id,
       title: title,
-      release_year: release_year,
+      popular_rank: popular_rank,
       certificate: certificate,
+      start_year: start_year,
+      end_year: end_year,
+      episodes: episodes,
       runtime: runtime,
-      genre: genre,
-      imdb_rating: imdb_rating,
-      meta_score: meta_score,
-      director: director,
+      type: type,
+      orign_country: orign_country,
+      language: language,
+      plot: plot,
+      summary: summary,
+      rating: rating,
+      num_votes: num_votes,
+      genres: genres,
+      is_adult: is_adult,
       cast: cast,
-      number_of_votes: number_of_votes,
-      description: description,
-      review_count: review_count,
-      review_title: review_title,
-      review: review
+      image_url: image_url
     }
   end
 
-  defp create_director(data) do
-    data[:director] |> String.trim() |> Utils.get_or_create_person(:director)
+  defp create_cast("-"), do: {:ok, []}
+
+  defp create_cast(cast_str) do
+    cast_str
+    |> String.trim()
+    |> Utils.create_persons_from_str()
   end
 
-  defp update_movie(%Movie{} = movie, cast_str, genres_str) do
-    with {:ok, cast} <- Utils.create_persons_from_str(cast_str, :actor),
-         {:ok, genres} <- Utils.create_genres_from_str(genres_str) do
-      movie
-      |> Repo.preload([:genres, :cast])
-      |> MediaLibrary.change_movie()
-      |> cast_assoc(:genres)
-      |> put_assoc(:genres, genres)
-      |> cast_assoc(:cast)
-      |> put_assoc(:cast, cast)
-      |> Repo.update()
-    else
-      {:error, error} ->
-        {:error, error}
-    end
+  defp update_movie(%Movie{} = movie, cast, genres) do
+    movie
+    |> Repo.preload([:genres, :cast])
+    |> MediaLibrary.change_movie()
+    |> cast_assoc(:genres)
+    |> put_assoc(:genres, genres)
+    |> cast_assoc(:cast)
+    |> put_assoc(:cast, cast)
+    |> Repo.update()
   end
 
-  defp create_movie(data, director) do
+  defp create_movie(data) do
     MediaLibrary.create_movie(%{
       title: data[:title],
-      description: data[:description],
-      poster_url: data[:poster_url],
-      release_date: Utils.parse_year(data[:release_year]),
-      imdb_rating: Utils.parse_float(data[:imdb_rating]),
-      meta_score: Utils.parse_int(data[:meta_score]),
-      number_of_votes: Utils.parse_int(data[:number_of_votes]),
-      director_id: director.id,
-      review_title: data[:review_title],
-      review: data[:review]
+      start_year: Utils.parse_int(data[:start_year]),
+      end_year: Utils.parse_int(data[:end_year]),
+      type: data[:type],
+      country: data[:orign_country],
+      description: data[:plot],
+      summary: data[:summary],
+      rating: Utils.parse_float(data[:rating]),
+      number_of_votes: Utils.parse_int(data[:num_votes]),
+      image_url: data[:image_url]
     })
   end
 
-  defp import_movie(%{director: ""}), do: {:skip, nil}
+  defp import_movie(%{plot: ""}), do: {:skip, nil}
 
   defp import_movie(data) do
-    with {:ok, director} <- create_director(data),
-         {:ok, created_movie} <- create_movie(data, director),
-         {:ok, updated_movie} <- update_movie(created_movie, data[:cast], data[:genre]) do
+    with {:ok, created_movie} <- create_movie(data),
+         {:ok, cast} <- create_cast(data[:cast]),
+         {:ok, genres} <- Utils.create_genres_from_str(data[:genres]),
+         {:ok, updated_movie} <- update_movie(created_movie, cast, genres) do
       {:ok, updated_movie}
     else
       {:error, error} ->
