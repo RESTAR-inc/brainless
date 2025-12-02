@@ -7,7 +7,6 @@ defmodule Brainless.Tasks.SeedMovies do
 
   alias Brainless.Repo
 
-  alias Brainless.CsvParser
   alias Brainless.MediaLibrary
   alias Brainless.MediaLibrary.Movie
   alias Brainless.Tasks.Utils
@@ -56,15 +55,12 @@ defmodule Brainless.Tasks.SeedMovies do
       cast: cast,
       image_url: image_url
     }
+    |> Enum.map(fn {key, value} -> {key, String.trim(value)} end)
+    |> Map.new()
   end
 
   defp create_cast("-"), do: {:ok, []}
-
-  defp create_cast(cast_str) do
-    cast_str
-    |> String.trim()
-    |> Utils.create_persons_from_str()
-  end
+  defp create_cast(cast_str), do: Utils.create_persons_from_str(cast_str)
 
   defp update_movie(%Movie{} = movie, cast, genres) do
     movie
@@ -93,6 +89,9 @@ defmodule Brainless.Tasks.SeedMovies do
   end
 
   defp import_movie(%{plot: ""}), do: {:skip, nil}
+  defp import_movie(%{summary: ""}), do: {:skip, nil}
+  defp import_movie(%{plot: "-"}), do: {:skip, nil}
+  defp import_movie(%{summary: "-"}), do: {:skip, nil}
 
   defp import_movie(data) do
     with {:ok, created_movie} <- create_movie(data),
@@ -109,25 +108,27 @@ defmodule Brainless.Tasks.SeedMovies do
     end
   end
 
+  defp process_row(row) do
+    data = row_to_map(row)
+    Logger.info("Movie to import: #{data[:title]}")
+
+    case import_movie(data) do
+      {:ok, movie} ->
+        Logger.info("Movie imported: #{movie.id}/#{movie.title}")
+        :ok
+
+      {:skip, nil} ->
+        Logger.info("Movie skipped: #{data[:title]}")
+        :skip
+
+      {:error, _} ->
+        Logger.error("Movie failed: #{data[:title]}")
+        :error
+    end
+  end
+
   def seed do
-    File.stream!(@csv)
-    |> CsvParser.parse_stream()
-    |> Stream.map(fn row ->
-      data = row_to_map(row)
-
-      Logger.info("Movie to import: #{data[:title]}")
-
-      case import_movie(data) do
-        {:ok, movie} ->
-          Logger.info("Movie imported: #{movie.id}/#{movie.title}")
-
-        {:skip, nil} ->
-          Logger.info("Movie skipped: #{data[:title]}")
-
-        {:error, _} ->
-          Logger.error("Movie failed: #{data[:title]}")
-      end
-    end)
-    |> Stream.run()
+    stats = Utils.seed(@csv, &process_row/1)
+    Logger.info("\nok: #{stats[:ok]}\nerror: #{stats[:error] || 0}\nskip: #{stats[:skip] || 0}")
   end
 end

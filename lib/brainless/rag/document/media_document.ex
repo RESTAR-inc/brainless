@@ -53,22 +53,22 @@ defmodule Brainless.Rag.Document.MediaDocument do
   def format(%Movie{} = movie) do
     """
     # #{movie.title} (#{movie.type})
-
     #{format_year(movie)}
 
-    Genre: #{format_genres(movie)}
+    #{get_description(movie.description || "", @max_movie_description_length)}
+
+    ## Synopsis
+
+    #{get_description(movie.summary || "n/a", @max_movie_description_length)}
 
     ## Cast
       #{format_persons(movie)}
 
     ## Details
+      - Genre: #{format_genres(movie)}
       - Country: #{movie.country || "n/a"}
       - Rating: #{movie.rating || "n/a"}
       - Number of votes: #{movie.number_of_votes || "n/a"}
-
-    ## Synopsis
-
-    #{get_description(movie.summary || "n/a", @max_movie_description_length)}
     """
   end
 

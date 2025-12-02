@@ -3,6 +3,7 @@ defmodule Brainless.Tasks.Utils do
   Seed Utils
   """
 
+  alias Brainless.CsvParser
   alias Brainless.MediaLibrary
   alias Brainless.MediaLibrary.Genre
   alias Brainless.MediaLibrary.Person
@@ -95,6 +96,23 @@ defmodule Brainless.Tasks.Utils do
     |> Enum.uniq()
     |> Enum.map(&get_or_create_person/1)
     |> assert_is_list_is_invalid()
+  end
+
+  @spec seed(String.t(), fun()) :: map()
+  def seed(file_name, func) do
+    File.stream!(file_name)
+    |> CsvParser.parse_stream()
+    |> Stream.map(fn row ->
+      case func.(row) do
+        :ok -> :ok
+        :error -> :error
+        :skip -> :skip
+        _ -> raise "Invalid import result"
+      end
+    end)
+    |> Enum.reduce(%{}, fn key, stats ->
+      Map.update(stats, key, 1, &(&1 + 1))
+    end)
   end
 
   defp assert_is_list_is_invalid(items) do

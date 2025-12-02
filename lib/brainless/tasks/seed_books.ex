@@ -5,7 +5,6 @@ defmodule Brainless.Tasks.SeedBooks do
   import Ecto.Changeset
   require Logger
 
-  alias Brainless.CsvParser
   alias Brainless.MediaLibrary
   alias Brainless.MediaLibrary.Book
   alias Brainless.Repo
@@ -41,6 +40,8 @@ defmodule Brainless.Tasks.SeedBooks do
       num_pages: num_pages,
       ratings_count: ratings_count
     }
+    |> Enum.map(fn {key, value} -> {key, String.trim(value)} end)
+    |> Map.new()
   end
 
   defp create_book(data) do
@@ -88,22 +89,24 @@ defmodule Brainless.Tasks.SeedBooks do
     end
   end
 
+  defp process_row(row) do
+    data = row_to_map(row)
+
+    Logger.info("Book to import: #{data[:title]}")
+
+    case import_book(data) do
+      {:ok, book} ->
+        :ok
+        Logger.info("Book imported: #{book.id}/#{book.title}")
+
+      {:error, _} ->
+        :error
+        Logger.error("Book failed: #{data[:title]}")
+    end
+  end
+
   def seed do
-    File.stream!(@csv)
-    |> CsvParser.parse_stream()
-    |> Stream.map(fn row ->
-      data = row_to_map(row)
-
-      Logger.info("Book to import: #{data[:title]}")
-
-      case import_book(data) do
-        {:ok, book} ->
-          Logger.info("Book imported: #{book.id}/#{book.title}")
-
-        {:error, _} ->
-          Logger.error("Book failed: #{data[:title]}")
-      end
-    end)
-    |> Stream.run()
+    stats = Utils.seed(@csv, &process_row/1)
+    Logger.info("\nok: #{stats[:ok]}\nerror: #{stats[:error] || 0}\nskip: #{stats[:skip] || 0}")
   end
 end
