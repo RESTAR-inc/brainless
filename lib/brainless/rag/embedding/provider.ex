@@ -2,13 +2,12 @@ defmodule Brainless.Rag.Embedding.Provider do
   @moduledoc """
   Embedding behavior
   """
-  alias Brainless.Rag.Embedding.EmbedData
-  alias Brainless.Rag.Embedding.EmbedDocument
+  alias Brainless.Rag.Embedding.IndexData
 
-  @callback str_to_vector(input :: String.t(), opts :: keyword()) ::
+  @callback to_vector(String.t(), keyword()) ::
               {:error, term()} | {:ok, [float()]}
-  @callback docs_to_index_list(documents :: [EmbedDocument.t()], opts :: keyword()) ::
-              {:error, map()} | {:ok, [EmbedData.t()]}
+  @callback to_index_list([IndexData.t()], keyword()) ::
+              {:error, map()} | {:ok, [{IndexData.t(), [float()]}]}
 
   defmacro __using__(_opts) do
     quote do

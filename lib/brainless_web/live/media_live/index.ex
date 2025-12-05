@@ -6,8 +6,6 @@ defmodule BrainlessWeb.MediaLive.Index do
   alias Brainless.Rag
   alias Brainless.Rag.Document.MediaDocument
 
-  defp to_md(nil), do: nil
-
   defp to_md(input) do
     case MDEx.to_html(input) do
       {:ok, html} -> html
@@ -26,17 +24,23 @@ defmodule BrainlessWeb.MediaLive.Index do
   end
 
   @impl true
-  def handle_event("search", %{"query" => query}, socket) do
+  def handle_event("search", %{"query" => query, "use_ai" => use_ai}, socket) do
+    use_ai =
+      case use_ai do
+        "true" -> true
+        "false" -> false
+      end
+
     query = String.trim(query)
-    search(socket, query)
+    search(socket, query, use_ai)
   end
 
-  defp search(socket, "") do
+  defp search(socket, "", _) do
     {:noreply, socket |> assign(:media_list, [])}
   end
 
-  defp search(socket, query) do
-    case Rag.search(MediaDocument.index_name(), query, use_ai: true) do
+  defp search(socket, query, use_ai) do
+    case Rag.search(MediaDocument.index_name(), query, use_ai: use_ai) do
       {:ok, media_list, ai_response} ->
         {:noreply,
          socket
@@ -66,9 +70,18 @@ defmodule BrainlessWeb.MediaLive.Index do
         </:actions>
       </.header>
 
-      <form phx-submit="search">
-        <.input type="text" name="query" value="" />
-        <.button phx-disable-with="..." variant="primary">Search</.button>
+      <form phx-submit="search" class="flex flex-col items-end">
+        <div class="w-full">
+          <.input type="text" name="query" value="" label="Query" />
+        </div>
+        <div class="flex gap-4 items-start">
+          <.button phx-disable-with="..." variant="primary">Search</.button>
+          <.input
+            type="checkbox"
+            name="use_ai"
+            label="Use AI"
+          />
+        </div>
       </form>
 
       <div :if={@ai_response != nil} class="p-2 w-full markdown">

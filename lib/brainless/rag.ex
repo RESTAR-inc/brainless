@@ -15,7 +15,7 @@ defmodule Brainless.Rag do
   def search(index_name, query, opts \\ []) when is_binary(query) do
     use_ai = Keyword.get(opts, :use_ai, false)
 
-    with {:ok, vector} <- Embedding.str_to_vector(query),
+    with {:ok, vector} <- Embedding.to_vector(query),
          {:ok, hits} <- Client.search(index_name, vector, opts),
          results <- map_results(hits) do
       if use_ai do

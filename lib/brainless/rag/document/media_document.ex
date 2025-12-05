@@ -6,7 +6,8 @@ defmodule Brainless.Rag.Document.MediaDocument do
 
   alias Brainless.MediaLibrary.Book
   alias Brainless.MediaLibrary.Movie
-  alias Brainless.Rag.Embedding.EmbedDocument
+  alias Brainless.Rag.Embedding.IndexData
+  alias Brainless.Rag.Embedding.Meta
 
   @max_movie_description_length 1000
   @max_book_description_length 1000
@@ -15,39 +16,41 @@ defmodule Brainless.Rag.Document.MediaDocument do
   def index_name, do: "media"
 
   @impl true
-  def document(%Movie{} = movie) do
-    %EmbedDocument{
+  def get_index_data(%Movie{} = movie) do
+    %IndexData{
       id: "movie-#{movie.id}",
       content: format(movie),
-      meta: %{
+      meta: %Meta{
         id: movie.id,
-        type: "movie"
+        type: "movie",
+        data: %{}
       }
     }
   end
 
-  def document(%Book{} = book) do
-    %EmbedDocument{
+  def get_index_data(%Book{} = book) do
+    %IndexData{
       id: "book-#{book.id}",
       content: format(book),
-      meta: %{
+      meta: %Meta{
         id: book.id,
-        type: "book"
+        type: "book",
+        data: %{}
       }
     }
   end
 
   @impl true
-  def mappings do
+  def get_meta_data_mappings do
     %{
-      id: %{
-        type: "integer"
-      },
-      type: %{
-        type: "text"
-      }
+      id: %{type: "integer"},
+      type: %{type: "text"}
     }
   end
+
+  @impl true
+  def get_meta_data(%Movie{id: id}), do: %{id: id, type: "movie"}
+  def get_meta_data(%Book{id: id}), do: %{id: id, type: "book"}
 
   @impl true
   def format(%Movie{} = movie) do

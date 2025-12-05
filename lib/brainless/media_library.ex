@@ -5,12 +5,11 @@ defmodule Brainless.MediaLibrary do
 
   import Ecto.Query, warn: false
 
-  alias Brainless.Repo
-
   alias Brainless.MediaLibrary.Book
   alias Brainless.MediaLibrary.Genre
   alias Brainless.MediaLibrary.Movie
   alias Brainless.MediaLibrary.Person
+  alias Brainless.Repo
 
   def create_genre(attrs) do
     %Genre{}

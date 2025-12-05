@@ -4,36 +4,33 @@ defmodule Brainless.Rag.Embedding.Provider.Gemini do
   """
   use Brainless.Rag.Embedding.Provider
 
-  alias Brainless.Rag.Embedding.EmbedData
-  alias Brainless.Rag.Embedding.EmbedDocument
+  alias Brainless.Rag.Embedding.IndexData
 
   @impl true
-  def str_to_vector(input, opts) do
+  def to_vector(input, opts) do
     model = Keyword.get(opts, :model)
     dimensions = Keyword.get(opts, :dimensions)
+
     ReqLLM.embed(model, input, dimensions: dimensions)
   end
 
   @impl true
-  def docs_to_index_list(documents, opts) do
+  def to_index_list(data_list, opts) do
     model = Keyword.get(opts, :model)
     dimensions = Keyword.get(opts, :dimensions)
 
-    texts = Enum.map(documents, & &1.content)
+    texts = Enum.map(data_list, & &1.content)
 
     case ReqLLM.embed(model, texts, dimensions: dimensions) do
-      {:ok, embeddings} ->
-        result =
-          documents
-          |> Enum.zip(embeddings)
-          |> Enum.map(fn {%EmbedDocument{id: id, meta: meta}, embedding} ->
-            %EmbedData{id: id, meta: meta, embedding: embedding}
-          end)
-
+      {:ok, embeds} ->
+        result = Enum.zip_with([data_list, embeds], &zip_embeds/1)
         {:ok, result}
 
       {:error, reason} ->
         {:error, reason}
     end
   end
+
+  defp zip_embeds([%IndexData{} = input, vector]),
+    do: {input, vector}
 end

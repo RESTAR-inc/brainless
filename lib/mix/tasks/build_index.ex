@@ -13,7 +13,6 @@ defmodule Mix.Tasks.BuildIndex do
   alias Brainless.Rag.Document.MediaDocument
   alias Brainless.Rag.Embedding
   alias Brainless.Rag.Embedding.Client
-  alias Brainless.Rag.Embedding.EmbedData
 
   @requirements ["app.start", "app.config"]
 
@@ -22,7 +21,7 @@ defmodule Mix.Tasks.BuildIndex do
   def run(args) do
     Logger.configure(level: :info)
 
-    {parsed, _, _} =
+    {targets, _, _} =
       OptionParser.parse(args,
         strict: [
           type: [:string, :keep]
@@ -30,11 +29,12 @@ defmodule Mix.Tasks.BuildIndex do
       )
 
     index_name = MediaDocument.index_name()
-    dimensions = Embedding.dimensions()
-    mappings = MediaDocument.mappings()
+    meta_mappings = MediaDocument.get_meta_data_mappings()
 
-    Client.create_index(index_name, dimensions, mappings)
-    update_all(parsed)
+    Client.delete_index(index_name)
+    Client.create_index(index_name, meta_mappings)
+
+    update_all(targets)
   end
 
   defp update_all([]), do: Enum.each(@doc_types, &update({:type, &1}))
@@ -70,28 +70,16 @@ defmodule Mix.Tasks.BuildIndex do
     |> Stream.run()
   end
 
-  defp update_index(%EmbedData{} = data, index_name) do
-    case Client.insert_index(index_name, data) do
-      :ok ->
-        Logger.info("Index created for #{data.id}")
-        :ok
-
-      {:error, _error} ->
-        Logger.error("Index failed: #{data.id}")
-    end
-  end
-
   defp update_entities(entities) do
-    documents = Enum.map(entities, &MediaDocument.document/1)
+    index_data_list = Enum.map(entities, &MediaDocument.get_index_data/1)
     index_name = MediaDocument.index_name()
 
-    ids_to_index = Enum.map_join(documents, ", ", & &1.id)
-    Logger.info("Indexes in queue: #{ids_to_index}")
-
-    case Embedding.docs_to_index_list(documents) do
-      {:ok, embeddings} ->
-        Enum.each(embeddings, &update_index(&1, index_name))
-
+    with {:ok, embedding_data} <- Embedding.to_index_list(index_data_list),
+         {:ok, created_items} <- Client.bulk_index(index_name, embedding_data) do
+      ids = Enum.map_join(created_items, ", ", fn %{"index" => %{"_id" => id}} -> id end)
+      Logger.info("RAG Index #{index_name} OK: #{ids}")
+      {:ok, created_items}
+    else
       {:error, _error} ->
         raise "Unbale to build an index"
     end
