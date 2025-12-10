@@ -56,11 +56,14 @@ defmodule Brainless.Rag do
 
   defp format_prompt(items, query) do
     """
+    Perform an analysis of the data to determine whether it matches the user’s query.
     Use the following context to respond to the following query.
-    Context:
+
+    # Context
     #{Enum.map_join(items, "\n", &format_entity(&1))}
-    # Query:
-      #{query}
+
+    # Query
+    #{query}
     """
   end
 end
