@@ -1,24 +1,33 @@
 # Brainless
 
+## Requirements
+
+You need to set up the embedding server from here: https://github.com/ChillyBwoy/brainless_embedding_service
+
+After that set env variables:
+
+- EMBEDDING_SERVICE_URL
+- EMBEDDING_SERVICE_API_KEY (use the same key as in `brainless_embedding_service`)
+
+## Howto
+
 Create `.env` file (see `.env.example`)
 
-1. You need to obtain a [Gemini API key](https://aistudio.google.com/api-keys). Put it into `GOOGLE_API_KEY` in your environment
-2. Run migration `$ mix ecto.migrate`
-3. Seed the database `$ mix seed`
-4. Build index `$ mix build_index`
+1. Instal dependencies `$ mix deps.get`
+2. Run docker containers `$ docker compose up -d`
+3. Run migration `$ mix ecto.migrate`
+4. Seed the database `$ mix media_library.seed`
+5. Build index `$ mix build_index`
+6. Start the application `$ mix phx.server`
 
-Now you can start the server. Check `/movies` route
+Now you can start the server. Check `/media` route
 
-## Datasets
+(Optional)
 
-- [Tokyo Restaurant Reviews on Tabelog](https://www.kaggle.com/datasets/utm529fg/tokyo-restaurant-reviews-on-tabelog)
-- [Shibuya Toilet](https://www.kaggle.com/datasets/shunkogiso/toilet-shibuya)
+If you want to use `gemini` to build the index, you need to obtain a [Gemini API Key](https://aistudio.google.com/api-keys). Put it into `GOOGLE_API_KEY` in your environment.
 
-## Models
+You can switch to Gemini by changing the config:
 
-### List of compatible models with 768 dimensions
-
-- sentence-transformers/gtr-t5-base (~220 MB, english only)
-- sentence-transformers/LaBSE (~1.9 GB, multilang)
-- sentence-transformers/distiluse-base-multilingual-cased-v2 (~540 MB, multilang)
-- sentence-transformers/paraphrase-multilingual-mpnet-base-v2 (~1.1 GB, multilang)
+```elixir
+config :brainless, Brainless.Rag.Embedding, provider: :gemini
+```

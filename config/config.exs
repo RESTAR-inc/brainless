@@ -12,9 +12,7 @@ config :brainless, Brainless.Rag.Embedding,
   dimensions: 256,
   gemini_model: "google:gemini-embedding-001"
 
-config :brainless, Brainless.Rag.Prediction,
-  provider: :gemini,
-  model: "google:gemini-2.5-flash"
+config :brainless, Brainless.Rag.Prediction, model: "google:gemini-2.5-flash"
 
 config :brainless,
   ecto_repos: [Brainless.Repo],
