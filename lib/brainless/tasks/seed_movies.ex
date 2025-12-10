@@ -7,116 +7,128 @@ defmodule Brainless.Tasks.SeedMovies do
 
   alias Brainless.Repo
 
-  alias Brainless.CsvParser
   alias Brainless.MediaLibrary
   alias Brainless.MediaLibrary.Movie
   alias Brainless.Tasks.Utils
 
-  @csv "priv/data/imdb_top_1000.csv"
+  @csv "priv/data/netflix_list.csv"
 
   defp row_to_map([
-         poster_url,
+         imdb_id,
          title,
-         release_year,
+         popular_rank,
          certificate,
+         start_year,
+         end_year,
+         episodes,
          runtime,
-         genre,
-         imdb_rating,
-         description,
-         meta_score,
-         director,
-         star1,
-         star2,
-         star3,
-         star4,
-         number_of_votes,
-         gross
+         type,
+         orign_country,
+         language,
+         plot,
+         summary,
+         rating,
+         num_votes,
+         genres,
+         is_adult,
+         cast,
+         image_url
        ]) do
     %{
-      poster_url: poster_url,
+      imdb_id: imdb_id,
       title: title,
-      release_year: release_year,
+      popular_rank: popular_rank,
       certificate: certificate,
+      start_year: start_year,
+      end_year: end_year,
+      episodes: episodes,
       runtime: runtime,
-      genre: genre,
-      imdb_rating: imdb_rating,
-      description: description,
-      meta_score: meta_score,
-      director: director,
-      star1: star1,
-      star2: star2,
-      star3: star3,
-      star4: star4,
-      number_of_votes: number_of_votes,
-      gross: gross
+      type: type,
+      orign_country: orign_country,
+      language: language,
+      plot: plot,
+      summary: summary,
+      rating: rating,
+      num_votes: num_votes,
+      genres: genres,
+      is_adult: is_adult,
+      cast: cast,
+      image_url: image_url
     }
+    |> Enum.map(fn {key, value} -> {key, String.trim(value)} end)
+    |> Map.new()
   end
 
-  defp parse_value(:gross, data) do
-    case data[:gross] do
-      nil ->
-        nil
+  defp create_cast("-"), do: {:ok, []}
+  defp create_cast(cast_str), do: Utils.create_persons_from_str(cast_str)
 
-      value when is_binary(value) ->
-        case String.replace(value, ",", "") |> Integer.parse() do
-          {val, _} -> val
-          :error -> nil
-        end
+  defp update_movie(%Movie{} = movie, cast, genres) do
+    movie
+    |> Repo.preload([:genres, :cast])
+    |> MediaLibrary.change_movie()
+    |> cast_assoc(:genres)
+    |> put_assoc(:genres, genres)
+    |> cast_assoc(:cast)
+    |> put_assoc(:cast, cast)
+    |> Repo.update()
+  end
+
+  defp create_movie(data) do
+    MediaLibrary.create_movie(%{
+      title: data[:title],
+      start_year: Utils.parse_int(data[:start_year]),
+      end_year: Utils.parse_int(data[:end_year]),
+      type: data[:type],
+      country: data[:orign_country],
+      description: data[:plot],
+      summary: data[:summary],
+      rating: Utils.parse_float(data[:rating]),
+      number_of_votes: Utils.parse_int(data[:num_votes]),
+      image_url: data[:image_url]
+    })
+  end
+
+  defp import_movie(%{plot: ""}), do: {:skip, nil}
+  defp import_movie(%{summary: ""}), do: {:skip, nil}
+  defp import_movie(%{plot: "-"}), do: {:skip, nil}
+  defp import_movie(%{summary: "-"}), do: {:skip, nil}
+
+  defp import_movie(data) do
+    with {:ok, created_movie} <- create_movie(data),
+         {:ok, cast} <- create_cast(data[:cast]),
+         {:ok, genres} <- Utils.create_genres_from_str(data[:genres]),
+         {:ok, updated_movie} <- update_movie(created_movie, cast, genres) do
+      {:ok, updated_movie}
+    else
+      {:error, error} ->
+        {:error, error}
+
+      _ ->
+        {:error, "Unknown error"}
+    end
+  end
+
+  defp process_row(row) do
+    data = row_to_map(row)
+    Logger.info("Movie to import: #{data[:title]}")
+
+    case import_movie(data) do
+      {:ok, movie} ->
+        Logger.info("Movie imported: #{movie.id}/#{movie.title}")
+        :ok
+
+      {:skip, nil} ->
+        Logger.info("Movie skipped: #{data[:title]}")
+        :skip
+
+      {:error, _} ->
+        Logger.error("Movie failed: #{data[:title]}")
+        :error
     end
   end
 
   def seed do
-    File.stream!(@csv)
-    |> CsvParser.parse_stream()
-    |> Stream.map(fn row ->
-      data = row_to_map(row)
-
-      director =
-        data[:director]
-        |> String.trim()
-        |> Utils.get_or_create_person(:director)
-
-      cast =
-        data
-        |> Map.take([:star1, :star2, :star3, :star4])
-        |> Map.values()
-        |> Enum.map(&String.trim(&1))
-        |> Enum.uniq()
-        |> Enum.map(&Utils.get_or_create_person(&1, :actor))
-
-      genres = data[:genre] |> Utils.create_genres()
-
-      attrs =
-        %{
-          title: data[:title],
-          description: data[:description],
-          poster_url: data[:poster_url],
-          release_date: Utils.parse_year(data[:release_year]),
-          imdb_rating: Utils.parse_int(data[:imdb_rating]),
-          meta_score: Utils.parse_int(data[:meta_score]),
-          gross: parse_value(:gross, data),
-          number_of_votes: Utils.parse_int(data[:number_of_votes]),
-          director_id: director.id
-        }
-
-      case MediaLibrary.create_movie(attrs) do
-        {:ok, %Movie{} = new_movie} ->
-          new_movie
-          |> Repo.preload([:genres, :cast])
-          |> MediaLibrary.change_movie()
-          |> cast_assoc(:genres)
-          |> put_assoc(:genres, genres)
-          |> cast_assoc(:cast)
-          |> put_assoc(:cast, cast)
-          |> Repo.update()
-
-          Logger.info("Movie:ok #{new_movie.id}/#{new_movie.title}")
-
-        {:error, _error} ->
-          Logger.error("Movie:error #{data[:title]}")
-          raise "Movie Import Error"
-      end
-    end)
-    |> Stream.run()
+    stats = Utils.seed(@csv, &process_row/1)
+    Logger.info("\nok: #{stats[:ok]}\nerror: #{stats[:error] || 0}\nskip: #{stats[:skip] || 0}")
   end
 end

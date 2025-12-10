@@ -5,12 +5,11 @@ defmodule Brainless.MediaLibrary do
 
   import Ecto.Query, warn: false
 
-  alias Brainless.Repo
-
   alias Brainless.MediaLibrary.Book
   alias Brainless.MediaLibrary.Genre
   alias Brainless.MediaLibrary.Movie
   alias Brainless.MediaLibrary.Person
+  alias Brainless.Repo
 
   def create_genre(attrs) do
     %Genre{}
@@ -56,7 +55,7 @@ defmodule Brainless.MediaLibrary do
 
   """
   def list_movies do
-    Repo.all(Movie) |> Repo.preload([:director, :cast, :genres])
+    Repo.all(Movie) |> Repo.preload([:cast, :genres])
   end
 
   @doc """
@@ -73,7 +72,7 @@ defmodule Brainless.MediaLibrary do
       ** (Ecto.NoResultsError)
 
   """
-  def get_movie!(id), do: Repo.get!(Movie, id) |> Repo.preload([:director, :genres, :cast])
+  def get_movie!(id), do: Repo.get!(Movie, id) |> Repo.preload([:genres, :cast])
 
   @doc """
   Creates a movie.
@@ -156,7 +155,7 @@ defmodule Brainless.MediaLibrary do
   end
 
   def retrieve({"movie" = type, ids_with_score}) do
-    from(movie in Movie, preload: [:director, :cast, :genres])
+    from(movie in Movie, preload: [:cast, :genres])
     |> retrieve_media(ids_with_score, type)
   end
 

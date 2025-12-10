@@ -6,70 +6,78 @@ defmodule Brainless.Rag.Document.MediaDocument do
 
   alias Brainless.MediaLibrary.Book
   alias Brainless.MediaLibrary.Movie
-  alias Brainless.Rag.Embedding.EmbedDocument
+  alias Brainless.Rag.Embedding.IndexData
+  alias Brainless.Rag.Embedding.Meta
+
+  @max_movie_description_length 1000
+  @max_book_description_length 1000
 
   @impl true
   def index_name, do: "media"
 
   @impl true
-  def document(%Movie{} = movie) do
-    %EmbedDocument{
+  def get_index_data(%Movie{} = movie) do
+    %IndexData{
       id: "movie-#{movie.id}",
       content: format(movie),
-      meta: %{
+      meta: %Meta{
         id: movie.id,
-        type: "movie"
+        type: "movie",
+        data: %{}
       }
     }
   end
 
-  def document(%Book{} = book) do
-    %EmbedDocument{
+  def get_index_data(%Book{} = book) do
+    %IndexData{
       id: "book-#{book.id}",
       content: format(book),
-      meta: %{
+      meta: %Meta{
         id: book.id,
-        type: "book"
+        type: "book",
+        data: %{}
       }
     }
   end
 
   @impl true
-  def mappings do
+  def get_meta_data_mappings do
     %{
-      id: %{
-        type: "integer"
-      },
-      type: %{
-        type: "text"
-      }
+      id: %{type: "integer"},
+      type: %{type: "text"}
     }
   end
+
+  @impl true
+  def get_meta_data(%Movie{id: id}), do: %{id: id, type: "movie"}
+  def get_meta_data(%Book{id: id}), do: %{id: id, type: "book"}
 
   @impl true
   def format(%Movie{} = movie) do
     """
-    # #{movie.title} (#{format_release_year(movie)})
+    # #{movie.title} (#{movie.type})
+    #{format_year(movie)}
 
-    Genre: #{format_genres(movie)}
+    #{get_description(movie.description || "", @max_movie_description_length)}
 
     ## Synopsis
 
-    #{movie.description}
+    #{get_description(movie.summary || "n/a", @max_movie_description_length)}
+
+    ## Cast
+      #{format_persons(movie)}
 
     ## Details
-      - Directed By: #{movie.director.name}
-      - Cast: #{format_persons(movie)}
-
-    ## Ratings
-      - IMDB: #{movie.imdb_rating}
-      - Meta Score: #{movie.meta_score}
+      - Genre: #{format_genres(movie)}
+      - Country: #{movie.country || "n/a"}
+      - Rating: #{movie.rating || "n/a"}
+      - Number of votes: #{movie.number_of_votes || "n/a"}
     """
   end
 
   def format(%Book{} = book) do
     """
-    # #{book.title} (#{format_release_year(book)})
+    # #{book.title} (#{format_year(book)})
     ## #{book.subtitle || "---"}
 
     Authors: #{format_persons(book)}
@@ -77,14 +85,12 @@ defmodule Brainless.Rag.Document.MediaDocument do
 
     ## Synopsis
 
-    #{book.description || "n/a"}
+    #{get_description(book.description || "n/a", @max_book_description_length)}
 
     ## Details
       - Pages: #{book.num_pages || "n/a"}
       - ISBN13: #{book.isbn13}
       - ISBN10: #{book.isbn10}
-
-    ## Ratings
       - Average Rating: #{book.average_rating || "n/a"}
       - Ratings Count: #{book.ratings_count || "n/a"}
     """
@@ -92,14 +98,16 @@ defmodule Brainless.Rag.Document.MediaDocument do
 
   def format(_), do: ""
 
-  defp format_release_year(%Movie{release_date: release_date}) do
-    case release_date do
-      nil -> "n/a"
-      date -> "#{date.year}"
+  defp format_year(%Movie{start_year: start_year, end_year: end_year}) do
+    case {start_year, end_year} do
+      {left, nil} when is_integer(left) -> "#{left} - now"
+      {_, right} when is_integer(right) -> "n/a - #{right}"
+      {left, right} when is_integer(left) and is_integer(right) -> "#{left} - #{right}"
+      _ -> "n/a"
     end
   end
 
-  defp format_release_year(%Book{published_at: published_at}) do
+  defp format_year(%Book{published_at: published_at}) do
     case published_at do
       nil -> "n/a"
       date -> "#{date.year}"
@@ -111,4 +119,12 @@ defmodule Brainless.Rag.Document.MediaDocument do
 
   defp format_persons(%Movie{cast: cast}), do: Enum.map_join(cast, ", ", & &1.name)
   defp format_persons(%Book{authors: authors}), do: Enum.map_join(authors, ", ", & &1.name)
+
+  defp get_description(value, max) when is_binary(value) and is_integer(max) do
+    if String.length(value) > max do
+      String.slice(value, 0, max) <> "..."
+    else
+      value
+    end
+  end
 end

@@ -106,3 +106,21 @@
 }
 
 /* This file is for your main application CSS */
+
+.markdown ul,
+.markdown ol,
+.markdown p {
+  @apply mb-2;
+}
+
+.markdown li {
+  @apply mb-1;
+}
+
+.markdown ul {
+  @apply list-disc pl-4;
+}
+
+.markdown ol {
+  @apply list-decimal pl-4;
+}

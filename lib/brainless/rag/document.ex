@@ -2,12 +2,13 @@ defmodule Brainless.Rag.Document do
   @moduledoc """
   Embed Document
   """
-  alias Brainless.Rag.Embedding.EmbedDocument
+  alias Brainless.Rag.Embedding.IndexData
 
-  @callback format(struct()) :: String.t()
-  @callback mappings() :: map()
   @callback index_name() :: String.t()
-  @callback document(struct()) :: EmbedDocument.t()
+  @callback get_index_data(struct()) :: IndexData.t() | nil
+  @callback get_meta_data_mappings() :: map() | nil
+  @callback get_meta_data(struct()) :: map()
+  @callback format(struct()) :: String.t()
 
   defmacro __using__(_opts) do
     quote do

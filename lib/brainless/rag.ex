@@ -10,12 +10,12 @@ defmodule Brainless.Rag do
   alias Brainless.Rag.Embedding.Client
   alias Brainless.Rag.Prediction
 
-  @spec search(String.t(), String.t(), [keyword()]) ::
+  @spec search(String.t(), String.t(), keyword()) ::
           {:error, term()} | {:ok, [{term(), String.t(), float()}], String.t() | nil}
   def search(index_name, query, opts \\ []) when is_binary(query) do
     use_ai = Keyword.get(opts, :use_ai, false)
 
-    with {:ok, vector} <- Embedding.str_to_vector(query),
+    with {:ok, vector} <- Embedding.to_vector(query),
          {:ok, hits} <- Client.search(index_name, vector, opts),
          results <- map_results(hits) do
       if use_ai do
@@ -56,11 +56,14 @@ defmodule Brainless.Rag do
 
   defp format_prompt(items, query) do
     """
+    Perform an analysis of the data to determine whether it matches the user’s query.
     Use the following context to respond to the following query.
-    Context:
+
+    # Context
     #{Enum.map_join(items, "\n", &format_entity(&1))}
-    # Query:
-      #{query}
+
+    # Query
+    #{query}
     """
   end
 end
