@@ -31,9 +31,9 @@ defmodule BrainlessWeb.Media.Components do
   defp media(assigns) do
     ~H"""
     <div class={["flex flex-col gap-2 relative", @class]}>
-      <%!-- <%= if @score != nil do %>
+      <%= if @score != nil do %>
         <span class="text-sm absolute top-0 right-0">[{@score}]</span>
-      <% end %> --%>
+      <% end %>
       <h2 class="text-2xl flex items-center gap-2">
         <.icon :if={@type == "movie"} name="hero-film" class="size-6" />
         <.icon :if={@type == "book"} name="hero-book-open" class="size-6" />

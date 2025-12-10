@@ -8,7 +8,7 @@ defmodule Brainless.Rag.Document do
   @callback get_index_data(struct()) :: IndexData.t() | nil
   @callback get_meta_data_mappings() :: map() | nil
   @callback get_meta_data(struct()) :: map()
-  @callback format(struct()) :: Strint.t()
+  @callback format(struct()) :: String.t()
 
   defmacro __using__(_opts) do
     quote do

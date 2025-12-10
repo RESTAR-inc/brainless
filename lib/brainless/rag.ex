@@ -10,7 +10,7 @@ defmodule Brainless.Rag do
   alias Brainless.Rag.Embedding.Client
   alias Brainless.Rag.Prediction
 
-  @spec search(String.t(), String.t(), [keyword()]) ::
+  @spec search(String.t(), String.t(), keyword()) ::
           {:error, term()} | {:ok, [{term(), String.t(), float()}], String.t() | nil}
   def search(index_name, query, opts \\ []) when is_binary(query) do
     use_ai = Keyword.get(opts, :use_ai, false)
