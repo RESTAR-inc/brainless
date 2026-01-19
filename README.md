@@ -2,7 +2,7 @@
 
 ## Requirements
 
-You need to set up the embedding server from here: https://github.com/ChillyBwoy/brainless_embedding_service
+You need to set up the embedding server from here: https://github.com/RESTAR-inc/brainless_embedding_service
 
 After that set env variables:
 

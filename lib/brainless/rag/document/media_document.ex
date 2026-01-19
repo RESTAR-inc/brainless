@@ -4,10 +4,12 @@ defmodule Brainless.Rag.Document.MediaDocument do
   """
   use Brainless.Rag.Document
 
+  alias Brainless.MediaLibrary
   alias Brainless.MediaLibrary.Book
   alias Brainless.MediaLibrary.Movie
   alias Brainless.Rag.Embedding.IndexData
   alias Brainless.Rag.Embedding.Meta
+  alias Brainless.Rag.Result
 
   @max_movie_description_length 1000
   @max_book_description_length 1000
@@ -97,6 +99,39 @@ defmodule Brainless.Rag.Document.MediaDocument do
   end
 
   def format(_), do: ""
+
+  @impl true
+  def retrieve(results) do
+    results
+    |> Enum.reduce(%{}, &unwrap_item/2)
+    |> Enum.map(&retrieve_type/1)
+    |> List.flatten()
+    |> Enum.sort_by(& &1.score, :desc)
+  end
+
+  defp retrieve_type({type, ids_with_score}) do
+    ids = Enum.map(ids_with_score, fn {id, _} -> id end)
+    scores_map = Map.new(ids_with_score)
+
+    type
+    |> String.to_existing_atom()
+    |> MediaLibrary.get_by_ids(ids)
+    |> Enum.map(fn entity ->
+      score = Map.get(scores_map, entity.id)
+
+      %Result{
+        type: type,
+        data: entity,
+        score: score
+      }
+    end)
+  end
+
+  defp unwrap_item({%IndexData{meta: %{id: id, type: type}}, score}, acc) do
+    Map.update(acc, type, [{id, score}], fn existing_list ->
+      existing_list ++ [{id, score}]
+    end)
+  end
 
   defp format_year(%Movie{start_year: start_year, end_year: end_year}) do
     case {start_year, end_year} do

@@ -4,14 +4,7 @@ defmodule BrainlessWeb.MediaLive.Index do
   import BrainlessWeb.Media.Components
 
   alias Brainless.Rag
-  alias Brainless.Rag.Document.MediaDocument
-
-  defp to_md(input) do
-    case MDEx.to_html(input) do
-      {:ok, html} -> html
-      {:error, _} -> nil
-    end
-  end
+  alias Brainless.Rag.Response
 
   @impl true
   def mount(_params, _session, socket) do
@@ -20,40 +13,49 @@ defmodule BrainlessWeb.MediaLive.Index do
      |> assign(:page_title, "Listing Media")
      |> assign(:ai_response, nil)
      |> assign(:query, nil)
-     |> assign(:media_list, [])}
+     |> assign(:results, [])}
   end
 
   @impl true
-  def handle_event("search", %{"query" => query, "use_ai" => use_ai}, socket) do
-    use_ai =
-      case use_ai do
+  def handle_event("search", %{"query" => query, "use_ai_summary" => use_ai_summary}, socket) do
+    use_ai_summary =
+      case use_ai_summary do
         "true" -> true
         "false" -> false
       end
 
     query = String.trim(query)
-    search(socket, query, use_ai)
+    search(socket, query, use_ai_summary)
   end
 
   defp search(socket, "", _) do
-    {:noreply, socket |> assign(:media_list, [])}
+    {:noreply, socket |> assign(:results, [])}
   end
 
-  defp search(socket, query, use_ai) do
-    case Rag.search(MediaDocument.index_name(), query, use_ai: use_ai) do
-      {:ok, media_list, ai_response} ->
+  defp search(socket, query, use_ai_summary) do
+    case Rag.search(:media, query, use_ai_summary: use_ai_summary) do
+      {:ok, %Response{results: results, ai_response: ai_response}} ->
         {:noreply,
          socket
-         |> assign(:media_list, media_list)
+         |> assign(:results, results)
          |> assign(:query, query)
          |> assign(:ai_response, to_md(ai_response))}
 
       {:error, _} ->
         {:noreply,
          socket
-         |> assign(:media_list, [])
+         |> assign(:results, [])
          |> assign(:query, nil)
          |> assign(:ai_response, nil)}
+    end
+  end
+
+  defp to_md(nil), do: nil
+
+  defp to_md(input) when is_binary(input) do
+    case MDEx.to_html(input) do
+      {:ok, html} -> html
+      {:error, _} -> nil
     end
   end
 
@@ -78,8 +80,8 @@ defmodule BrainlessWeb.MediaLive.Index do
           <.button phx-disable-with="..." variant="primary">Search</.button>
           <.input
             type="checkbox"
-            name="use_ai"
-            label="Use AI"
+            name="use_ai_summary"
+            label="Use AI Summary"
           />
         </div>
       </form>
@@ -88,14 +90,14 @@ defmodule BrainlessWeb.MediaLive.Index do
         {raw(@ai_response)}
       </div>
 
-      <div :if={@media_list != []} class="flex flex-col divide-y">
-        <div class="p-4">Found {length(@media_list)}</div>
-        <%= for {media, media_type, score} <- @media_list do %>
-          <.movie :if={media_type == "movie"} movie={media} score={score} class="p-4" />
-          <.book :if={media_type == "book"} book={media} score={score} class="p-4" />
+      <div :if={@results != []} class="flex flex-col divide-y">
+        <div class="p-4">Found {length(@results)}</div>
+        <%= for result <- @results do %>
+          <.movie :if={result.type == "movie"} movie={result.data} score={result.score} class="p-4" />
+          <.book :if={result.type == "book"} book={result.data} score={result.score} class="p-4" />
         <% end %>
       </div>
-      <div :if={@media_list == [] && @query != nil} class="flex items-center justify-center">
+      <div :if={@results == [] && @query != nil} class="flex items-center justify-center">
         Nothing found
       </div>
     </Layouts.app>

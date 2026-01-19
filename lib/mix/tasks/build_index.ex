@@ -28,11 +28,8 @@ defmodule Mix.Tasks.BuildIndex do
         ]
       )
 
-    index_name = MediaDocument.index_name()
-    meta_mappings = MediaDocument.get_meta_data_mappings()
-
-    Client.delete_index(index_name)
-    Client.create_index(index_name, meta_mappings)
+    Client.delete_index(MediaDocument)
+    Client.create_index(MediaDocument)
 
     update_all(targets)
   end
@@ -75,7 +72,7 @@ defmodule Mix.Tasks.BuildIndex do
     index_name = MediaDocument.index_name()
 
     with {:ok, embedding_data} <- Embedding.to_index_list(index_data_list),
-         {:ok, created_items} <- Client.bulk_index(index_name, embedding_data) do
+         {:ok, created_items} <- Client.bulk_index(MediaDocument, embedding_data) do
       ids = Enum.map_join(created_items, ", ", fn %{"index" => %{"_id" => id}} -> id end)
       Logger.info("RAG Index #{index_name} OK: #{ids}")
       {:ok, created_items}

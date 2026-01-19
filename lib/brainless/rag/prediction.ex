@@ -2,11 +2,13 @@ defmodule Brainless.Rag.Prediction do
   @moduledoc """
   Text generator
   """
+  use Brainless.Rag.Config
+
   alias ReqLLM.Message.ContentPart
 
   @spec predict(input :: String.t(), opts :: keyword()) :: {:error, term()} | {:ok, String.t()}
   def predict(input, opts \\ []) do
-    model = get_model()
+    model = get_rag_config(:prediction_model)
     model_input = prepare_input(input, opts)
 
     case ReqLLM.generate_text(model, model_input) do
@@ -16,10 +18,6 @@ defmodule Brainless.Rag.Prediction do
       {:error, reason} ->
         {:error, reason}
     end
-  end
-
-  defp get_model do
-    Keyword.fetch!(Application.fetch_env!(:brainless, __MODULE__), :model)
   end
 
   defp format_content(content) when is_list(content) do
