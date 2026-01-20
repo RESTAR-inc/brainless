@@ -52,7 +52,7 @@ defmodule Brainless.Tasks.SeedBooks do
       isbn10: data[:isbn10],
       thumbnail: data[:thumbnail],
       description: data[:description] || "",
-      published_at: Utils.parse_year(data[:published_at]),
+      published_at: Utils.parse_year(data[:published_year]),
       average_rating: Utils.parse_float(data[:average_rating]),
       num_pages: Utils.parse_int(data[:num_pages]),
       ratings_count: Utils.parse_int(data[:ratings_count])

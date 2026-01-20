@@ -139,6 +139,8 @@ defmodule Brainless.MediaLibrary do
     Book.changeset(book, attrs)
   end
 
+  def get_book!(id), do: Repo.get!(Book, id) |> Repo.preload([:authors, :genres])
+
   @spec get_by_ids(atom(), [pos_integer()]) :: [term()]
   def get_by_ids(:movie, ids) do
     from(movie in Movie, preload: [:cast, :genres])

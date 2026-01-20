@@ -57,44 +57,25 @@ defmodule Brainless.Rag.Document.MediaDocument do
   @impl true
   def format(%Movie{} = movie) do
     """
-    # #{movie.title} (#{movie.type})
-    #{format_year(movie)}
+    #{movie.title} (#{movie.type})
 
-    #{get_description(movie.description || "", @max_movie_description_length)}
+    #{get_description(movie.summary || "", @max_movie_description_length)}
 
-    ## Synopsis
-
-    #{get_description(movie.summary || "n/a", @max_movie_description_length)}
-
-    ## Cast
-      #{format_persons(movie)}
-
-    ## Details
-      - Genre: #{format_genres(movie)}
-      - Country: #{movie.country || "n/a"}
-      - Rating: #{movie.rating || "n/a"}
-      - Number of votes: #{movie.number_of_votes || "n/a"}
+    Genre: #{format_genres(movie)}
+    Year: #{format_year(movie)}
+    Cast: #{format_persons(movie)}
+    Country: #{movie.country || "n/a"}
     """
   end
 
   def format(%Book{} = book) do
     """
-    # #{book.title} (#{format_year(book)})
-    ## #{book.subtitle || "---"}
+    "#{book.title}. #{book.subtitle}" by #{format_persons(book)}.
 
-    Authors: #{format_persons(book)}
+    #{get_description(book.description || "", @max_book_description_length)}
+
+    Year: #{format_year(book)}
     Genre: #{format_genres(book)}
-
-    ## Synopsis
-
-    #{get_description(book.description || "n/a", @max_book_description_length)}
-
-    ## Details
-      - Pages: #{book.num_pages || "n/a"}
-      - ISBN13: #{book.isbn13}
-      - ISBN10: #{book.isbn10}
-      - Average Rating: #{book.average_rating || "n/a"}
-      - Ratings Count: #{book.ratings_count || "n/a"}
     """
   end
 
