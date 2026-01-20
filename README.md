@@ -29,5 +29,5 @@ If you want to use `gemini` to build the index, you need to obtain a [Gemini API
 You can switch to Gemini by changing the config:
 
 ```elixir
-config :brainless, Brainless.Rag.Embedding, provider: :gemini
+config :brainless, Brainless.Rag, embedding_provider: :gemini,
 ```
