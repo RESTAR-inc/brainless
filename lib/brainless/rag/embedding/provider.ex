@@ -4,9 +4,9 @@ defmodule Brainless.Rag.Embedding.Provider do
   """
   alias Brainless.Rag.Embedding.IndexData
 
-  @callback to_vector(String.t(), keyword()) ::
+  @callback to_vector(String.t()) ::
               {:error, term()} | {:ok, [float()]}
-  @callback to_index_list([IndexData.t()], keyword()) ::
+  @callback to_index_list([IndexData.t()]) ::
               {:error, map()} | {:ok, [{IndexData.t(), [float()]}]}
 
   defmacro __using__(_opts) do

@@ -7,12 +7,9 @@
 # General application configuration
 import Config
 
-config :brainless, Brainless.Rag.Embedding,
-  provider: :local,
-  dimensions: 256,
-  gemini_model: "google:gemini-embedding-001"
-
-config :brainless, Brainless.Rag.Prediction, model: "google:gemini-2.5-flash"
+config :brainless, Brainless.Rag,
+  embedding_provider: :local,
+  embedding_dimensions: 768
 
 config :brainless,
   ecto_repos: [Brainless.Repo],

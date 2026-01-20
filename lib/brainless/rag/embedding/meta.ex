@@ -21,4 +21,13 @@ defmodule Brainless.Rag.Embedding.Meta do
       }
     }
   end
+
+  @spec from_source(map(), fun()) :: t()
+  def from_source(%{"id" => id, "type" => type, "data" => data}, extract) do
+    %__MODULE__{
+      id: id,
+      type: type,
+      data: extract.(data)
+    }
+  end
 end

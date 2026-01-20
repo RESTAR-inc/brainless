@@ -3,6 +3,7 @@ defmodule Brainless.Rag.Embedding.Client do
   See https://www.elastic.co/docs/solutions/search/vector/knn
   """
   use HTTPoison.Base
+  use Brainless.Rag.Config
 
   alias Brainless.Rag.Embedding.IndexData
 
@@ -37,7 +38,7 @@ defmodule Brainless.Rag.Embedding.Client do
 
   @impl true
   def process_request_url(url) do
-    option(:es_url)
+    get_rag_config(:es_url)
     |> URI.merge(url)
     |> URI.to_string()
   end
@@ -54,36 +55,39 @@ defmodule Brainless.Rag.Embedding.Client do
     end
   end
 
-  @spec create_index(String.t(), map()) :: {:error, any()} | :ok
-  def create_index(index_name, meta_mappings) do
+  @spec create_index(module()) :: {:error, any()} | :ok
+  def create_index(mod) do
+    index_name = mod.index_name()
+    meta_mappings = mod.get_meta_data_mappings()
+
     case put!(index_name, %{mappings: get_mappings(meta_mappings)}) do
       %{body: %{"error" => %{"type" => "resource_already_exists_exception"}}} ->
-        {:error, :index_already_exists}
+        {:error, :rag_client_index_already_exists}
 
       %{body: %{"error" => _}} ->
-        {:error, :create_index_error}
+        {:error, :rag_client_create_index_error}
 
       _ ->
         :ok
     end
   end
 
-  @spec delete_index(String.t()) :: {:error, any()} | :ok
-  def delete_index(index_name) do
-    case delete!(index_name) do
+  @spec delete_index(module()) :: {:error, any()} | :ok
+  def delete_index(mod) do
+    case delete!(mod.index_name()) do
       %{status_code: 200, body: %{"acknowledged" => true}} ->
         :ok
 
       %{status_code: 404, body: %{"error" => %{"type" => "index_not_found_exception"}}} ->
-        {:error, :index_not_found}
+        {:error, :rag_client_index_not_found}
 
       %{status_code: _, body: %{"error" => _}} ->
-        {:error, :index_delete_error}
+        {:error, :rag_client_index_delete_error}
     end
   end
 
-  @spec bulk_index(String.t(), [{IndexData.t(), float()}]) :: {:error, any()} | {:ok, [map()]}
-  def bulk_index(index_name, items) do
+  @spec bulk_index(module(), [{IndexData.t(), float()}]) :: {:error, any()} | {:ok, [map()]}
+  def bulk_index(mod, items) do
     payload =
       items
       |> Enum.flat_map(&bulk_unwrap/1)
@@ -91,31 +95,31 @@ defmodule Brainless.Rag.Embedding.Client do
       |> Enum.reverse()
       |> IO.iodata_to_binary()
 
-    case put!("#{index_name}/_bulk", payload) do
+    case put!("#{mod.index_name()}/_bulk", payload) do
       %{status_code: 200, body: %{"errors" => false, "items" => items}} ->
         {:ok, items}
 
       %{status_code: 200, body: %{"errors" => true}} ->
-        {:error, :bulk_index_payload_error}
+        {:error, :rag_client_bulk_index_payload_error}
 
       _ ->
-        {:error, :bulk_index_error}
+        {:error, :rag_client_bulk_index_error}
     end
   end
 
-  @spec search(String.t(), [float()], [search_options()]) ::
+  @spec search(module(), [float()], [search_options()]) ::
           {:error, term()} | {:ok, [{map(), float()}]}
-  def search(index_name, vector, opts \\ []) do
-    url = "#{index_name}/_search"
+  def search(mod, vector, opts \\ []) do
+    url = "#{mod.index_name()}/_search"
 
     params = prepare_search_params(vector, opts)
 
     case post!(url, params) do
       %{status_code: 200, body: %{"hits" => %{"hits" => hits}}} ->
-        {:ok, Enum.map(hits, &extract_search_item/1)}
+        {:ok, Enum.map(hits, &extract_search_item(mod, &1))}
 
       _ ->
-        {:error, "Unknown error"}
+        {:error, :rag_client_search_error}
     end
   end
 
@@ -139,7 +143,7 @@ defmodule Brainless.Rag.Embedding.Client do
       properties: %{
         vector: %{
           type: "dense_vector",
-          dims: option(:dimensions),
+          dims: get_rag_config(:embedding_dimensions),
           index: true,
           similarity: @similarity
         },
@@ -188,12 +192,8 @@ defmodule Brainless.Rag.Embedding.Client do
     }
   end
 
-  defp extract_search_item(%{"_source" => %{"meta" => meta}, "_score" => score}),
-    do: {meta, invert_score(score, @similarity)}
-
-  defp option(key) when is_atom(key) do
-    :brainless
-    |> Application.fetch_env!(Brainless.Rag.Embedding)
-    |> Keyword.fetch!(key)
+  defp extract_search_item(mod, %{"_id" => id, "_source" => source, "_score" => score}) do
+    index_data = IndexData.from_source(id, source, &mod.extract_data/1)
+    {index_data, invert_score(score, @similarity)}
   end
 end

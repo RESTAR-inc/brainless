@@ -2,68 +2,90 @@ defmodule Brainless.Rag do
   @moduledoc """
   Main RAG module
   """
-  alias Brainless.MediaLibrary
-  alias Brainless.MediaLibrary.Book
-  alias Brainless.MediaLibrary.Movie
+
   alias Brainless.Rag.Document.MediaDocument
   alias Brainless.Rag.Embedding
   alias Brainless.Rag.Embedding.Client
   alias Brainless.Rag.Prediction
+  alias Brainless.Rag.Reranking
+  alias Brainless.Rag.Response
+  alias Brainless.Rag.Result
 
-  @spec search(String.t(), String.t(), keyword()) ::
-          {:error, term()} | {:ok, [{term(), String.t(), float()}], String.t() | nil}
-  def search(index_name, query, opts \\ []) when is_binary(query) do
-    use_ai = Keyword.get(opts, :use_ai, false)
+  @module_map %{
+    media: Brainless.Rag.Document.MediaDocument
+  }
 
-    with {:ok, vector} <- Embedding.to_vector(query),
-         {:ok, hits} <- Client.search(index_name, vector, opts),
-         results <- map_results(hits) do
-      if use_ai do
-        prompt = format_prompt(results, query)
+  def search(module_key, query, opts \\ []) when is_binary(query) do
+    use_ai_summary = Keyword.get(opts, :use_ai_summary, false)
+    use_rerank = Keyword.get(opts, :use_rerank, false)
+    top_n = Keyword.get(opts, :top_n, 20)
 
-        case Prediction.predict(prompt) do
-          {:ok, ai_response} ->
-            {:ok, results, ai_response}
+    with {:ok, mod} <- Map.fetch(@module_map, module_key),
+         {:ok, vector} <- Embedding.to_vector(query),
+         {:ok, items} <- Client.search(mod, vector, opts),
+         {:ok, reranked_items} <- rerank(use_rerank, mod, items, query, top_n),
+         results <- mod.retrieve(reranked_items),
+         {:ok, results, ai_response} <- predict(use_ai_summary, results, query) do
+      response = %Response{
+        query: query,
+        results: results,
+        ai_response: ai_response
+      }
 
-          {:error, _} ->
-            {:ok, results, nil}
-        end
-      else
-        {:ok, results, nil}
-      end
+      {:ok, response}
     else
-      _ -> {:error, "Can not retrieve the data"}
+      {:error, reason} ->
+        {:error, reason}
+
+      _ ->
+        {:error, :rag_search_error}
     end
   end
 
-  defp map_results(hits) when is_list(hits) do
-    hits
-    |> Enum.reduce(%{}, &compose_results/2)
-    |> Enum.map(&MediaLibrary.retrieve/1)
-    |> List.flatten()
-    |> Enum.sort_by(fn {_, _, score} -> score end, :desc)
+  defp rerank(_, _mod, [], _, _top_n), do: {:ok, []}
+  defp rerank(false, _mod, index_data_list, _, _top_n), do: {:ok, index_data_list}
+
+  defp rerank(true, _mod, index_data_list, query, top_n) do
+    case Reranking.rerank(index_data_list, query, top_n: top_n) do
+      {:ok, items} ->
+        {:ok, items}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 
-  defp compose_results({%{"id" => id, "type" => type}, score}, acc) do
-    Map.update(acc, type, [{id, score}], fn existing_list ->
-      existing_list ++ [{id, score}]
-    end)
+  defp predict(true, results, query) do
+    prompt = format_prompt(results, query)
+
+    case Prediction.predict(prompt) do
+      {:ok, ai_response} ->
+        {:ok, results, ai_response}
+
+      {:error, _} ->
+        {:ok, results, nil}
+    end
   end
 
-  defp format_entity({%Movie{} = movie, "movie", _}), do: MediaDocument.format(movie)
-  defp format_entity({%Book{} = book, "book", _}), do: MediaDocument.format(book)
+  defp predict(false, results, _query) do
+    {:ok, results, nil}
+  end
+
+  defp format_entity(%Result{data: data}), do: MediaDocument.format(data)
   defp format_entity(_), do: ""
 
   defp format_prompt(items, query) do
     """
-    Perform an analysis of the data to determine whether it matches the user’s query.
-    Use the following context to respond to the following query.
+    You are an AI assistant for a media library application.
+    Perform an analysis of the data to determine whether it matches the user’s prompt and pick top 5 matches.
 
-    # Context
+    User Prompt: `#{query}`
+
+    Use the following context to respond to the following prompt:
+
+    ```
     #{Enum.map_join(items, "\n", &format_entity(&1))}
-
-    # Query
-    #{query}
+    ```
     """
   end
 end

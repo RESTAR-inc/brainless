@@ -139,30 +139,20 @@ defmodule Brainless.MediaLibrary do
     Book.changeset(book, attrs)
   end
 
-  @spec retrieve_media(Ecto.Query.t(), [{integer(), float()}], String.t()) ::
-          [{term(), String.t(), float()}]
-  defp retrieve_media(query, ids_with_score, type) do
-    ids = Enum.map(ids_with_score, fn {id, _} -> id end)
-    scores_map = Map.new(ids_with_score)
+  def get_book!(id), do: Repo.get!(Book, id) |> Repo.preload([:authors, :genres])
 
-    query
+  @spec get_by_ids(atom(), [pos_integer()]) :: [term()]
+  def get_by_ids(:movie, ids) do
+    from(movie in Movie, preload: [:cast, :genres])
     |> where([p], p.id in ^ids)
     |> Repo.all()
-    |> Enum.map(fn entity ->
-      score = Map.get(scores_map, entity.id)
-      {entity, type, score}
-    end)
   end
 
-  def retrieve({"movie" = type, ids_with_score}) do
-    from(movie in Movie, preload: [:cast, :genres])
-    |> retrieve_media(ids_with_score, type)
-  end
-
-  def retrieve({"book" = type, ids_with_score}) do
+  def get_by_ids(:book, ids) do
     from(book in Book, preload: [:authors, :genres])
-    |> retrieve_media(ids_with_score, type)
+    |> where([p], p.id in ^ids)
+    |> Repo.all()
   end
 
-  def delete_media(%Movie{} = movie), do: Repo.delete(movie)
+  def get_by_ids(_, _), do: raise(ArgumentError, message: "invalid type")
 end

@@ -2,22 +2,19 @@ defmodule Brainless.Rag.Embedding.Provider.Local do
   @moduledoc """
   Local embeddings
   """
+  use Brainless.Rag.Config
   use Brainless.Rag.Embedding.Provider
 
   alias Brainless.Rag.Embedding.IndexData
 
   @impl true
-  def to_vector(input, opts) do
-    dimensions = Keyword.get(opts, :dimensions)
-    headers = Keyword.get(opts, :api_key) |> get_headers()
-    url = Keyword.get(opts, :service_url) |> endpoint(:one)
-
+  def to_vector(input) do
     json = %{
       content: input,
-      dimensions: dimensions
+      dimensions: get_rag_config(:embedding_dimensions)
     }
 
-    case Req.post(url, headers: headers, json: json) do
+    case Req.post(endpoint(:one), headers: headers(), json: json) do
       {:ok, %Req.Response{body: body}} ->
         {:ok, body}
 
@@ -27,17 +24,13 @@ defmodule Brainless.Rag.Embedding.Provider.Local do
   end
 
   @impl true
-  def to_index_list(data_list, opts) do
-    dimensions = Keyword.get(opts, :dimensions)
-    url = Keyword.get(opts, :service_url) |> endpoint(:bulk)
-    headers = Keyword.get(opts, :api_key) |> get_headers()
-
+  def to_index_list(data_list) do
     json = %{
       documents: Enum.map(data_list, &%{id: &1.id, content: &1.content}),
-      dimensions: dimensions
+      dimensions: get_rag_config(:embedding_dimensions)
     }
 
-    case Req.post(url, headers: headers, json: json) do
+    case Req.post(endpoint(:bulk), headers: headers(), json: json) do
       {:ok, %Req.Response{status: 200, body: embeds}} ->
         result =
           [data_list, embeds]
@@ -59,12 +52,12 @@ defmodule Brainless.Rag.Embedding.Provider.Local do
 
   defp zip_embeds(_), do: nil
 
-  defp endpoint(service_url, :one), do: "#{service_url}/api/embeddings"
-  defp endpoint(service_url, :bulk), do: "#{service_url}/api/embeddings/bulk"
+  defp endpoint(:one), do: "#{get_rag_config(:service_url)}/api/embeddings"
+  defp endpoint(:bulk), do: "#{get_rag_config(:service_url)}/api/embeddings/bulk"
 
-  defp get_headers(api_key) do
+  defp headers do
     [
-      "x-api-key": api_key,
+      "x-api-key": get_rag_config(:service_api_key),
       "content-type": ["application/json"]
     ]
   end
