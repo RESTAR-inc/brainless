@@ -1,4 +1,7 @@
 defmodule Brainless.Rag.Response do
+  @moduledoc """
+  Struct representing a RAG search response
+  """
   alias Brainless.Rag.Result
 
   @derive JSON.Encoder

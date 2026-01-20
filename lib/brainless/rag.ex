@@ -3,14 +3,13 @@ defmodule Brainless.Rag do
   Main RAG module
   """
 
-  alias Brainless.MediaLibrary.Book
-  alias Brainless.MediaLibrary.Movie
   alias Brainless.Rag.Document.MediaDocument
   alias Brainless.Rag.Embedding
   alias Brainless.Rag.Embedding.Client
   alias Brainless.Rag.Prediction
   alias Brainless.Rag.Reranking
   alias Brainless.Rag.Response
+  alias Brainless.Rag.Result
 
   @module_map %{
     media: Brainless.Rag.Document.MediaDocument
@@ -18,12 +17,13 @@ defmodule Brainless.Rag do
 
   def search(module_key, query, opts \\ []) when is_binary(query) do
     use_ai_summary = Keyword.get(opts, :use_ai_summary, false)
+    use_rerank = Keyword.get(opts, :use_rerank, false)
     top_n = Keyword.get(opts, :top_n, 20)
 
     with {:ok, mod} <- Map.fetch(@module_map, module_key),
          {:ok, vector} <- Embedding.to_vector(query),
          {:ok, items} <- Client.search(mod, vector, opts),
-         {:ok, reranked_items} <- rerank(mod, items, query, top_n),
+         {:ok, reranked_items} <- rerank(use_rerank, mod, items, query, top_n),
          results <- mod.retrieve(reranked_items),
          {:ok, results, ai_response} <- predict(use_ai_summary, results, query) do
       response = %Response{
@@ -42,9 +42,10 @@ defmodule Brainless.Rag do
     end
   end
 
-  defp rerank(_mod, [], _, _top_n), do: {:ok, []}
+  defp rerank(_, _mod, [], _, _top_n), do: {:ok, []}
+  defp rerank(false, _mod, index_data_list, _, _top_n), do: {:ok, index_data_list}
 
-  defp rerank(_mod, index_data_list, query, top_n) do
+  defp rerank(true, _mod, index_data_list, query, top_n) do
     case Reranking.rerank(index_data_list, query, top_n: top_n) do
       {:ok, items} ->
         {:ok, items}
@@ -70,8 +71,7 @@ defmodule Brainless.Rag do
     {:ok, results, nil}
   end
 
-  defp format_entity({%Movie{} = movie, "movie", _}), do: MediaDocument.format(movie)
-  defp format_entity({%Book{} = book, "book", _}), do: MediaDocument.format(book)
+  defp format_entity(%Result{data: data}), do: MediaDocument.format(data)
   defp format_entity(_), do: ""
 
   defp format_prompt(items, query) do

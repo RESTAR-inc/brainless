@@ -32,18 +32,18 @@ defmodule BrainlessWeb.Media.Components do
     ~H"""
     <div class={["flex flex-col gap-2 relative", @class]}>
       <%= if @score != nil do %>
-        <span class="text-sm absolute top-0 right-0">[{@score}]</span>
+        <span class="text-sm">[{@score}]</span>
       <% end %>
-      <h2 class="text-2xl flex items-center gap-2">
-        <.icon :if={@type == "movie"} name="hero-film" class="size-6" />
-        <.icon :if={@type == "book"} name="hero-book-open" class="size-6" />
+      <h2 class="text-xl flex items-center gap-2 relative">
+        <.icon :if={@type == "movie"} name="hero-film" class="size-6 text-blue-400" />
+        <.icon :if={@type == "book"} name="hero-book-open" class="size-6 text-green-400" />
         {render_slot(@title)}
       </h2>
-      <div class="grid grid-cols-[100px_1fr] gap-4">
+      <div class="grid grid-cols-[100px_1fr] gap-2">
         <img src={@image} width="100" />
 
-        <div class="flex flex-col gap-2">
-          <dl class="grid grid-cols-[auto_1fr] gap-2 [&_dt]:font-bold [&_dt]:after:content-[':']">
+        <div class="flex flex-col">
+          <dl class="grid grid-cols-[auto_1fr] gap-x-2 [&_dt]:font-bold [&_dt]:after:content-[':']">
             <%= for p <- @prop do %>
               <dt>{p[:label]}</dt>
               <dd>{render_slot(p)}</dd>

@@ -17,23 +17,23 @@ defmodule BrainlessWeb.MediaLive.Index do
   end
 
   @impl true
-  def handle_event("search", %{"query" => query, "use_ai_summary" => use_ai_summary}, socket) do
-    use_ai_summary =
-      case use_ai_summary do
-        "true" -> true
-        "false" -> false
-      end
-
-    query = String.trim(query)
-    search(socket, query, use_ai_summary)
+  def handle_event(
+        "search",
+        %{"query" => query, "use_rerank" => use_rerank, "use_ai_summary" => use_ai_summary},
+        socket
+      ) do
+    search(socket, String.trim(query), get_bool(use_ai_summary), get_bool(use_rerank))
   end
 
-  defp search(socket, "", _) do
+  defp get_bool(value) when value in ["true", true], do: true
+  defp get_bool(_), do: false
+
+  defp search(socket, "", _, _) do
     {:noreply, socket |> assign(:results, [])}
   end
 
-  defp search(socket, query, use_ai_summary) do
-    case Rag.search(:media, query, use_ai_summary: use_ai_summary) do
+  defp search(socket, query, use_ai_summary, use_rerank) do
+    case Rag.search(:media, query, use_ai_summary: use_ai_summary, use_rerank: use_rerank) do
       {:ok, %Response{results: results, ai_response: ai_response}} ->
         {:noreply,
          socket
@@ -77,12 +77,17 @@ defmodule BrainlessWeb.MediaLive.Index do
           <.input type="text" name="query" value="" label="Query" />
         </div>
         <div class="flex gap-4 items-start">
-          <.button phx-disable-with="..." variant="primary">Search</.button>
+          <.input
+            type="checkbox"
+            name="use_rerank"
+            label="Rerank Results"
+          />
           <.input
             type="checkbox"
             name="use_ai_summary"
-            label="Use AI Summary"
+            label="AI Summary"
           />
+          <.button phx-disable-with="..." variant="primary">Search</.button>
         </div>
       </form>
 
