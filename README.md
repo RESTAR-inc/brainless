@@ -6,8 +6,8 @@ You need to set up the embedding server from here: https://github.com/RESTAR-inc
 
 After that set env variables:
 
-- EMBEDDING_SERVICE_URL
-- EMBEDDING_SERVICE_API_KEY (use the same key as in `brainless_embedding_service`)
+- RAG_SERVICE_URL
+- RAG_SERVICE_API_KEY (use the same key as in `brainless_embedding_service`)
 
 ## Howto
 
